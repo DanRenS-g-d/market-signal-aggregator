@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from db import init_db, insert_news, insert_technicals, insert_tweets
 from config import TICKERS
 from layer1.scrapers import fetch_google_news, compute_technicals, fetch_twitter
