@@ -55,10 +55,10 @@ def get_recent_news(ticker: str, hours: int = 24) -> list[dict]:
     cur = conn.cursor()
     since = datetime.utcnow() - timedelta(hours=hours)
     cur.execute("""
-        SELECT id, title, summary
+        SELECT DISTINCT ON (title) id, title, summary
         FROM news
         WHERE ticker = %s AND fetched_at >= %s
-        ORDER BY fetched_at DESC
+        ORDER BY title, fetched_at DESC
     """, (ticker, since))
     rows = cur.fetchall()
     cur.close()
