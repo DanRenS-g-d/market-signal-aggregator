@@ -2,9 +2,10 @@ import os
 import time
 import requests
 import feedparser
-import yfinance as yf
 from datetime import datetime
 from config import SEARCH_TERMS
+
+ALPHA_VANTAGE_KEY = os.environ.get("ALPHA_VANTAGE_KEY", "")
 
 # ── GOOGLE NEWS RSS ───────────────────────────────────────────────────────────
 
@@ -25,48 +26,92 @@ def fetch_google_news(ticker: str) -> list[dict]:
     return results
 
 
-# ── YAHOO FINANCE TECHNICALS ──────────────────────────────────────────────────
+# ── ALPHA VANTAGE TECHNICALS ──────────────────────────────────────────────────
 
 def compute_technicals(ticker: str) -> dict:
-    try:
-        df = yf.download(ticker, period="30d", interval="1d", progress=False)
-        if df.empty:
-            return {"ticker": ticker, "error": "no data from Yahoo Finance"}
+    if not ALPHA_VANTAGE_KEY:
+        return {"ticker": ticker, "error": "no ALPHA_VANTAGE_KEY set"}
 
-        close = df["Close"].squeeze()
+    symbol_map = {
+        "EC":           "EC",
+        "CNEC.CN":      "CNEC",
+        "CIB":          "CIB",
+        "PFBCOLOM.CL":  "PFBCOLOM",
+    }
+    symbol = symbol_map.get(ticker, ticker)
+
+    try:
+        url = "https://www.alphavantage.co/query"
+        params = {
+            "function": "TIME_SERIES_DAILY",
+            "symbol": symbol,
+            "outputsize": "compact",
+            "apikey": ALPHA_VANTAGE_KEY,
+        }
+        r = requests.get(url, params=params, timeout=15)
+        data = r.json()
+
+        if "Time Series (Daily)" not in data:
+            note = data.get("Note") or data.get("Information") or "unknown error"
+            return {"ticker": ticker, "error": f"Alpha Vantage: {note[:100]}"}
+
+        series = data["Time Series (Daily)"]
+        dates = sorted(series.keys(), reverse=True)[:30]
+        closes = [float(series[d]["4. close"]) for d in dates]
+        volumes = [float(series[d]["5. volume"]) for d in dates]
+        closes.reverse()
+        volumes.reverse()
 
         # RSI 14
-        delta = close.diff()
-        gain = delta.clip(lower=0).rolling(14).mean()
-        loss = -delta.clip(upper=0).rolling(14).mean()
-        rs = gain / loss
-        rsi = float((100 - (100 / (1 + rs))).iloc[-1])
+        def calc_rsi(prices, period=14):
+            gains, losses = [], []
+            for i in range(1, len(prices)):
+                diff = prices[i] - prices[i-1]
+                gains.append(max(diff, 0))
+                losses.append(max(-diff, 0))
+            if len(gains) < period:
+                return 50.0
+            avg_gain = sum(gains[-period:]) / period
+            avg_loss = sum(losses[-period:]) / period
+            if avg_loss == 0:
+                return 100.0
+            rs = avg_gain / avg_loss
+            return round(100 - (100 / (1 + rs)), 2)
 
         # MACD 12/26/9
-        ema12 = close.ewm(span=12).mean()
-        ema26 = close.ewm(span=26).mean()
-        macd_line = ema12 - ema26
-        signal_line = macd_line.ewm(span=9).mean()
-        macd_signal = "bullish" if macd_line.iloc[-1] > signal_line.iloc[-1] else "bearish"
+        def ema(prices, span):
+            k = 2 / (span + 1)
+            result = [prices[0]]
+            for p in prices[1:]:
+                result.append(p * k + result[-1] * (1 - k))
+            return result
+
+        ema12 = ema(closes, 12)
+        ema26 = ema(closes, 26)
+        macd_line = [a - b for a, b in zip(ema12, ema26)]
+        signal_line = ema(macd_line, 9)
+        macd_signal = "bullish" if macd_line[-1] > signal_line[-1] else "bearish"
 
         # SMA 20
-        sma20 = float(close.rolling(20).mean().iloc[-1])
-        current = float(close.iloc[-1])
+        sma20 = sum(closes[-20:]) / 20
+        current = closes[-1]
         sma_signal = "bullish" if current > sma20 else "bearish"
 
         # Volume
-        vol = df["Volume"].squeeze()
-        vol_signal = "high" if float(vol.iloc[-1]) > float(vol.iloc[-6:-1].mean()) else "normal"
+        avg_vol = sum(volumes[-6:-1]) / 5 if len(volumes) >= 6 else volumes[-1]
+        vol_signal = "high" if volumes[-1] > avg_vol else "normal"
+
+        rsi = calc_rsi(closes)
 
         return {
-            "ticker": ticker,
-            "price": round(current, 4),
-            "rsi": round(rsi, 2),
-            "rsi_signal": "overbought" if rsi > 70 else ("oversold" if rsi < 30 else "neutral"),
-            "macd_signal": macd_signal,
-            "sma20_signal": sma_signal,
+            "ticker":        ticker,
+            "price":         round(current, 4),
+            "rsi":           rsi,
+            "rsi_signal":    "overbought" if rsi > 70 else ("oversold" if rsi < 30 else "neutral"),
+            "macd_signal":   macd_signal,
+            "sma20_signal":  sma_signal,
             "volume_signal": vol_signal,
-            "error": None,
+            "error":         None,
         }
 
     except Exception as e:
