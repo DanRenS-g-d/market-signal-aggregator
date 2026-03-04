@@ -9,10 +9,8 @@ def get_connection():
     return psycopg2.connect(os.environ["DATABASE_URL"])
 
 def init_db():
-    """Create tables if they don't exist."""
     conn = get_connection()
     cur = conn.cursor()
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS news (
             id          SERIAL PRIMARY KEY,
@@ -24,7 +22,6 @@ def init_db():
             fetched_at  TIMESTAMP DEFAULT NOW()
         );
     """)
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS technicals (
             id              SERIAL PRIMARY KEY,
@@ -39,7 +36,6 @@ def init_db():
             fetched_at      TIMESTAMP DEFAULT NOW()
         );
     """)
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS tweets (
             id          SERIAL PRIMARY KEY,
@@ -51,7 +47,6 @@ def init_db():
             fetched_at  TIMESTAMP DEFAULT NOW()
         );
     """)
-
     conn.commit()
     cur.close()
     conn.close()
@@ -81,11 +76,19 @@ def init_sentiment_table():
 
 
 def insert_news(items: list[dict]):
+    """Insert news, skipping duplicates by title+ticker."""
     if not items:
-        return
+        return 0
     conn = get_connection()
     cur = conn.cursor()
+    inserted = 0
     for item in items:
+        cur.execute(
+            "SELECT id FROM news WHERE ticker = %s AND title = %s LIMIT 1",
+            (item.get("ticker"), item.get("title"))
+        )
+        if cur.fetchone():
+            continue
         cur.execute("""
             INSERT INTO news (ticker, title, summary, link, published)
             VALUES (%s, %s, %s, %s, %s)
@@ -96,9 +99,28 @@ def insert_news(items: list[dict]):
             item.get("link"),
             item.get("published"),
         ))
+        inserted += 1
     conn.commit()
     cur.close()
     conn.close()
+    return inserted
+
+
+def technicals_fetched_today(ticker: str) -> bool:
+    """Returns True if technicals were already fetched in the last 20 hours."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id FROM technicals
+        WHERE ticker = %s
+          AND fetched_at >= NOW() - INTERVAL '20 hours'
+          AND error IS NULL
+        LIMIT 1
+    """, (ticker,))
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+    return result is not None
 
 
 def insert_technicals(item: dict):

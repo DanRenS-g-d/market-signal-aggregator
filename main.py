@@ -1,8 +1,3 @@
-"""
-Main entry point for market-signal-aggregator.
-Runs Layer 1 (ingestion) then Layer 2 (sentiment) on a schedule.
-"""
-
 import schedule
 import time
 import os
@@ -11,10 +6,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from db import init_db, init_sentiment_table
+from db import init_db, init_sentiment_table, insert_news, insert_technicals, insert_tweets, technicals_fetched_today
 from config import TICKERS
 from layer1.scrapers import fetch_google_news, compute_technicals, fetch_twitter
-from db import insert_news, insert_technicals, insert_tweets
 from layer2.sentiment import run_sentiment_analysis
 
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
@@ -31,12 +25,16 @@ def run_pipeline():
         print(f"\n  [→] {ticker}")
 
         news = fetch_google_news(ticker)
-        insert_news(news)
-        print(f"      News: {len(news)} items")
+        inserted = insert_news(news)
+        print(f"      News: {inserted} new items (fetched {len(news)})")
 
-        tech = compute_technicals(ticker)
-        insert_technicals(tech)
-        print(f"      Technicals: RSI={tech.get('rsi','N/A')} | MACD={tech.get('macd_signal','N/A')}")
+        # Only fetch technicals once per day to respect API limits
+        if technicals_fetched_today(ticker):
+            print(f"      Technicals: skipped (already fetched today)")
+        else:
+            tech = compute_technicals(ticker)
+            insert_technicals(tech)
+            print(f"      Technicals: RSI={tech.get('rsi','N/A')} | MACD={tech.get('macd_signal','N/A')}")
 
         tweets = fetch_twitter(ticker)
         insert_tweets(tweets)
@@ -61,14 +59,11 @@ if __name__ == "__main__":
     print(f"Tickers: {TICKERS}")
     print(f"Interval: every {INTERVAL} hours")
 
-    # Init DB tables
     init_db()
     init_sentiment_table()
 
-    # Run immediately
     run_pipeline()
 
-    # Schedule
     schedule.every(INTERVAL).hours.do(run_pipeline)
 
     while True:
