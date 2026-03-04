@@ -1,3 +1,6 @@
+
+Copiar
+
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -56,6 +59,28 @@ def init_db():
     cur.close()
     conn.close()
     print("[DB] Tables ready.")
+
+
+def init_sentiment_table():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS sentiment (
+            id              SERIAL PRIMARY KEY,
+            ticker          TEXT NOT NULL,
+            signal          TEXT,
+            score           NUMERIC,
+            avg_positive    NUMERIC,
+            avg_negative    NUMERIC,
+            avg_neutral     NUMERIC,
+            article_count   INTEGER,
+            analyzed_at     TIMESTAMP DEFAULT NOW()
+        );
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("[DB] Sentiment table ready.")
 
 
 def insert_news(items: list[dict]):
