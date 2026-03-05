@@ -200,10 +200,10 @@ def bootstrap_all():
 def encode_conditions(rsi, macd_signal, sma20_signal, volume_zscore=0):
     """Encode current conditions as a numeric vector."""
     return [
-        (rsi or 50) / 100.0,
+        float(rsi or 50) / 100.0,
         1.0 if macd_signal == "bullish" else (0.0 if macd_signal == "bearish" else 0.5),
         1.0 if sma20_signal == "bullish" else (0.0 if sma20_signal == "bearish" else 0.5),
-        min(max((volume_zscore or 0) / 3.0, -1), 1),
+        min(max(float(volume_zscore or 0) / 3.0, -1), 1),
     ]
 
 
