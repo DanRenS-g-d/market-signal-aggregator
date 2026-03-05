@@ -7,10 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from db import init_db, init_sentiment_table, insert_news, insert_technicals, insert_tweets, technicals_fetched_today
-from config import TICKERS
+from config import TICKERS, PAIRS
 from layer1.scrapers import fetch_google_news, compute_technicals, fetch_twitter
 from layer2.sentiment import run_sentiment_analysis
-from layer3.prediction_market import run_prediction_market_layer
+from layer4.db_layer4 import init_layer4_tables
+from layer4.signals import run_signal_generation
+from layer4.similarity import run_similarity_engine
 
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
 
@@ -20,8 +22,9 @@ def run_pipeline():
     print(f"PIPELINE RUN at {datetime.utcnow().isoformat()}")
     print(f"{'='*60}")
 
-    # LAYER 1
+    # ── LAYER 1: Ingestion ────────────────────────────────────
     print("\n[LAYER 1] Data Ingestion")
+    tech_data = {}
     for ticker in TICKERS:
         print(f"\n  [->] {ticker}")
         news = fetch_google_news(ticker)
@@ -30,33 +33,56 @@ def run_pipeline():
 
         if technicals_fetched_today(ticker):
             print(f"      Technicals: skipped (already fetched today)")
+            # Still load for similarity engine
+            from db import get_connection
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT rsi, macd_signal, sma20_signal FROM technicals
+                WHERE ticker=%s AND error IS NULL
+                ORDER BY fetched_at DESC LIMIT 1
+            """, (ticker,))
+            row = cur.fetchone()
+            cur.close(); conn.close()
+            if row:
+                tech_data[ticker] = {"rsi": float(row[0]) if row[0] else None,
+                                     "macd_signal": row[1], "sma20_signal": row[2]}
         else:
             tech = compute_technicals(ticker)
             insert_technicals(tech)
             print(f"      Technicals: RSI={tech.get('rsi','N/A')} | MACD={tech.get('macd_signal','N/A')}")
+            tech_data[ticker] = tech
 
         tweets = fetch_twitter(ticker)
         insert_tweets(tweets)
         print(f"      Tweets: {len(tweets)}")
 
-    # LAYER 2
+    # ── LAYER 2: Sentiment ────────────────────────────────────
     print("\n[LAYER 2] Sentiment Analysis")
     sentiment_results = run_sentiment_analysis()
-
     if sentiment_results:
-        print("\n-- SENTIMENT SUMMARY --")
+        print("\n-- SENTIMENT --")
         for r in sentiment_results:
             bar = "^" if r["signal"] == "bullish" else ("v" if r["signal"] == "bearish" else "-")
             print(f"  {bar} {r['ticker']:12} {r['signal'].upper():8} score={r['score']:+.3f}")
 
-    # LAYER 3
-    print("\n[LAYER 3] Prediction Market Voting")
-    pm_results = run_prediction_market_layer()
+    # ── LAYER 4.5: Similarity ─────────────────────────────────
+    print("\n[LAYER 4.5] Similarity Engine")
+    similarity_results = run_similarity_engine(tech_data)
 
-    if pm_results:
-        print("\n-- PREDICTION MARKET SUMMARY --")
-        for r in pm_results:
-            print(f"  {r['pair']}: p_yes={r['probability_yes']:.3f} -> {r['signal'].upper()}")
+    # ── LAYER 4: Signal Generation ────────────────────────────
+    print("\n[LAYER 4] Pair Signal Generation")
+    signal_results = run_signal_generation()
+
+    # ── FINAL SUMMARY ─────────────────────────────────────────
+    print(f"\n{'='*60}")
+    print("FINAL SIGNALS")
+    print(f"{'='*60}")
+    for r in signal_results:
+        hc = " *** HIGH CONFIDENCE TRADE ***" if r["high_confidence"] else ""
+        arrow = f"LONG {r['ticker_a']}" if r["signal"] == "long_a" else \
+                (f"LONG {r['ticker_b']}" if r["signal"] == "long_b" else "NEUTRAL")
+        print(f"  {r['pair']:12} -> {arrow:20} conf={r['confidence']:.2f}{hc}")
 
     print(f"\n[OK] Pipeline complete. Next run in {INTERVAL} hours.")
 
@@ -68,6 +94,7 @@ if __name__ == "__main__":
 
     init_db()
     init_sentiment_table()
+    init_layer4_tables()
 
     run_pipeline()
 
