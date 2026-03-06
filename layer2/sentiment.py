@@ -1,6 +1,6 @@
 """
 LAYER 2: Sentiment Analysis via FinBERT
-Reads news from DB, scores each title, saves aggregate sentiment per ticker.
+Reads news from DB, filters for relevance, scores each title, saves aggregate sentiment per ticker.
 """
 
 import sys
@@ -8,11 +8,11 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import requests
-import json
 from datetime import datetime, timedelta
 from db import get_connection, init_sentiment_table
+from layer2.relevance import filter_articles
 
-HF_API_URL = "https://router.huggingface.co/hf-inference/models/ProsusAI/finbert"
+HF_API_URL = "https://api-inference.huggingface.co/models/ProsusAI/finbert"
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 
 
@@ -23,12 +23,11 @@ def score_text(text: str) -> dict:
         response = requests.post(
             HF_API_URL,
             headers=headers,
-            json={"inputs": text[:512]},  # FinBERT max 512 tokens
+            json={"inputs": text[:512]},
             timeout=15,
         )
         if response.status_code == 200:
             results = response.json()
-            # HF returns list of list of dicts: [[{label, score}, ...]]
             if isinstance(results, list) and len(results) > 0:
                 scores = results[0] if isinstance(results[0], list) else results
                 score_map = {item["label"].lower(): item["score"] for item in scores}
@@ -55,7 +54,7 @@ def get_recent_news(ticker: str, hours: int = 24) -> list[dict]:
     cur = conn.cursor()
     since = datetime.utcnow() - timedelta(hours=hours)
     cur.execute("""
-        SELECT DISTINCT ON (title) id, title, summary
+        SELECT DISTINCT ON (title) id, title, summary, link
         FROM news
         WHERE ticker = %s AND fetched_at >= %s
         ORDER BY title, fetched_at DESC
@@ -63,29 +62,42 @@ def get_recent_news(ticker: str, hours: int = 24) -> list[dict]:
     rows = cur.fetchall()
     cur.close()
     conn.close()
-    return [{"id": r[0], "title": r[1], "summary": r[2]} for r in rows]
+    return [{"id": r[0], "title": r[1], "summary": r[2], "link": r[3]} for r in rows]
 
 
 def analyze_ticker(ticker: str) -> dict:
-    """Score all recent news for a ticker and return aggregate sentiment."""
+    """Score relevant recent news for a ticker and return aggregate sentiment."""
     news_items = get_recent_news(ticker, hours=24)
-
     if not news_items:
-        # Fall back to last 7 days if nothing in 24h
         news_items = get_recent_news(ticker, hours=168)
 
     if not news_items:
         print(f"    No news found for {ticker}")
         return {"ticker": ticker, "signal": "neutral", "score": 0.0, "article_count": 0}
 
-    print(f"    Scoring {len(news_items)} articles for {ticker}...")
+    # ── Relevance filter ──────────────────────────────────────
+    relevant, stats = filter_articles(ticker, news_items)
+
+    if stats["filtered"] > 0:
+        print(f"    Relevance filter: {stats['relevant']}/{stats['total']} kept", end="")
+        if stats["filtered_items"]:
+            removed = [f['title'][:40] for f in stats["filtered_items"][:3]]
+            print(f" | removed: {removed}")
+        else:
+            print()
+
+    if not relevant:
+        print(f"    No relevant articles after filtering for {ticker}")
+        return {"ticker": ticker, "signal": "neutral", "score": 0.0, "article_count": 0}
+
+    print(f"    Scoring {len(relevant)} articles for {ticker}...")
 
     total_positive = 0
     total_negative = 0
-    total_neutral = 0
+    total_neutral  = 0
     scored = 0
 
-    for item in news_items:
+    for item in relevant:
         text = item["title"] or ""
         if item["summary"]:
             text += ". " + item["summary"][:200]
@@ -104,8 +116,6 @@ def analyze_ticker(ticker: str) -> dict:
     avg_pos = total_positive / scored
     avg_neg = total_negative / scored
     avg_neu = total_neutral  / scored
-
-    # Net sentiment score: positive - negative, range -1 to 1
     net_score = round(avg_pos - avg_neg, 4)
 
     if net_score > 0.1:
@@ -133,15 +143,14 @@ def run_sentiment_analysis():
     print(f"{'='*50}")
 
     if not HF_TOKEN:
-        print("[ERROR] HF_TOKEN not set. Get a free token at huggingface.co/settings/tokens")
+        print("[ERROR] HF_TOKEN not set.")
         return
 
     init_sentiment_table()
-
     conn = get_connection()
     cur = conn.cursor()
-
     results = []
+
     for ticker in TICKERS:
         print(f"\n[→] Analyzing {ticker}")
         result = analyze_ticker(ticker)
@@ -160,13 +169,11 @@ def run_sentiment_analysis():
             result.get("avg_neutral", 0),
             result.get("article_count", 0),
         ))
-
         print(f"    → SIGNAL: {result['signal'].upper()} (score={result['score']})")
 
     conn.commit()
     cur.close()
     conn.close()
-
     print(f"\n[✓] Sentiment analysis complete. Results saved.")
     return results
 
