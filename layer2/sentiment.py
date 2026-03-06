@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from db import get_connection, init_sentiment_table
 from layer2.relevance import filter_articles
 
-HF_API_URL = "https://api-inference.huggingface.co/models/ProsusAI/finbert"
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/ProsusAI/finbert"
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 
 
