@@ -1,106 +1,66 @@
 """
-Relevance filter for news articles.
-Filters out articles that don't actually discuss the target ticker/company.
-
-Two-layer approach:
-1. Keyword match  — title/summary must mention the company or ticker
-2. Domain denylist — known noisy domains that generate false positives
+Relevance filter for news articles — extended for all 15 tickers.
 """
 
-# ── Company keywords per ticker ───────────────────────────────
 TICKER_KEYWORDS = {
-    "EC": [
-        "ecopetrol", "ec stock", "ec shares", "ec nyse",
-        "colombia oil", "colombia energy", "castilla crude",
-        "ecopetrol sa", "ecopetrol adr",
-    ],
-    "CNEC.CN": [
-        "canacol", "cnec", "canacol energy", "canadian gas co",
-        "colombia gas", "colombia natural gas",
-    ],
-    "CIB": [
-        "bancolombia", "cib stock", "cib shares", "cib nyse",
-        "grupo cibest", "bancolombia sa", "bancolombia",
-    ],
-    "PFBCOLOM.CL": [
-        "davivienda", "pfbcolom", "banco davivienda",
-        "davivienda bank", "scotiabank davivienda",
-    ],
+    "EC":            ["ecopetrol", "ec stock", "ec nyse", "ec shares", "castilla crude", "ecopetrol sa", "ecopetrol adr"],
+    "CNEC.CN":       ["canacol", "cnec", "canacol energy", "canadian gas co", "colombia gas", "colombia natural gas"],
+    "GPRK":          ["geopark", "gprk", "geo park", "geopark oil", "geopark colombia"],
+    "CIB":           ["bancolombia", "cib stock", "cib shares", "cib nyse", "grupo cibest", "bancolombia sa"],
+    "PFBCOLOM.CL":   ["davivienda", "pfbcolom", "banco davivienda", "scotiabank davivienda"],
+    "AVAL":          ["grupo aval", "aval stock", "aval nyse", "aval acciones", "banco de bogota", "banco popular colombia"],
+    "CIBEST.CL":     ["bancolombia", "cibest", "bancolombia bvc", "bancolombia accion"],
+    "PFCIBEST.CL":   ["bancolombia preferencial", "pfcibest", "bancolombia pfd"],
+    "ISA.CL":        ["interconexion electrica", "isa colombia", "isa energia", "isa transmision", "intercolombia"],
+    "GEB.CL":        ["grupo energia bogota", "geb colombia", "energia bogota", "gas natural fenosa colombia"],
+    "GRUPSURA.CL":   ["grupo sura", "grupsura", "suramericana", "sura inversiones", "grupo de inversiones suramericana"],
+    "PFGRUPSURA.CL": ["grupo sura preferencial", "pfgrupsura", "sura pfd"],
+    "CEMARGOS.CL":   ["cementos argos", "cemargos", "argos cemento", "argos colombia"],
+    "TGLS":          ["tecnoglass", "tgls", "tecnoglass colombia", "tecnoglass barranquilla"],
 }
 
-# ── Domains known to generate false positives ─────────────────
-# These sites use ticker symbols generically (e.g. "CIB" = Chartered Insurance Broker)
 NOISY_DOMAINS = {
-    "EC": [
-        "immunitybc.com", "immunobio.com",        # ImmunityBio ticker confusion
-        "theguardian.com",                         # wildlife/environment articles
-        "bbc.com", "bbc.co.uk",                   # general news rarely EC-specific
-    ],
-    "CNEC.CN": [
-        "law360.com",                              # legal firm articles
-    ],
-    "CIB": [
-        "nasdaq.com",    # "Grupo Cibest Becomes Oversold (CIB)" = wrong company
-        "sec.gov",       # raw SEC filings not useful for sentiment
-    ],
-    "PFBCOLOM.CL": [],
+    "EC":            ["immunitybc.com", "theguardian.com"],
+    "CNEC.CN":       ["law360.com"],
+    "GPRK":          [],
+    "CIB":           ["sec.gov"],
+    "PFBCOLOM.CL":   [],
+    "AVAL":          [],
+    "CIBEST.CL":     ["sec.gov"],
+    "PFCIBEST.CL":   ["sec.gov"],
+    "ISA.CL":        [],
+    "GEB.CL":        [],
+    "GRUPSURA.CL":   [],
+    "PFGRUPSURA.CL": [],
+    "CEMARGOS.CL":   [],
+    "TGLS":          [],
 }
 
 
 def is_relevant(ticker: str, title: str, summary: str = "", link: str = "") -> tuple[bool, str]:
-    """
-    Returns (is_relevant: bool, reason: str)
-    
-    An article is relevant if:
-    1. Its domain is not in the denylist for this ticker
-    2. Its title or summary contains at least one keyword for the ticker
-    """
     title_lower = (title or "").lower()
     summary_lower = (summary or "").lower()
     link_lower = (link or "").lower()
     combined = title_lower + " " + summary_lower
 
-    # ── Layer 1: Domain denylist ──────────────────────────────
-    noisy = NOISY_DOMAINS.get(ticker, [])
-    for domain in noisy:
+    for domain in NOISY_DOMAINS.get(ticker, []):
         if domain in link_lower:
             return False, f"noisy_domain:{domain}"
 
-    # ── Layer 2: Keyword match ────────────────────────────────
-    keywords = TICKER_KEYWORDS.get(ticker, [ticker.lower()])
-    for kw in keywords:
+    for kw in TICKER_KEYWORDS.get(ticker, [ticker.lower()]):
         if kw in combined:
             return True, f"keyword:{kw}"
 
-    # No keyword matched — article is likely about a different company
     return False, "no_keyword_match"
 
 
 def filter_articles(ticker: str, articles: list[dict]) -> tuple[list[dict], dict]:
-    """
-    Filter a list of articles for relevance.
-    Returns (relevant_articles, stats)
-    """
-    relevant = []
-    filtered_out = []
-
+    relevant, filtered_out = [], []
     for art in articles:
-        ok, reason = is_relevant(
-            ticker,
-            art.get("title", ""),
-            art.get("summary", ""),
-            art.get("link", ""),
-        )
+        ok, reason = is_relevant(ticker, art.get("title", ""), art.get("summary", ""), art.get("link", ""))
         if ok:
             relevant.append(art)
         else:
             filtered_out.append({"title": art.get("title", "")[:60], "reason": reason})
-
-    stats = {
-        "total": len(articles),
-        "relevant": len(relevant),
-        "filtered": len(filtered_out),
-        "filtered_items": filtered_out,
-    }
-
-    return relevant, stats
+    return relevant, {"total": len(articles), "relevant": len(relevant),
+                      "filtered": len(filtered_out), "filtered_items": filtered_out}
