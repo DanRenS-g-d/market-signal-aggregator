@@ -10,9 +10,10 @@ from db import init_db, init_sentiment_table, insert_news, insert_technicals, in
 from config import TICKERS, PAIRS
 from layer1.scrapers import fetch_google_news, compute_technicals, fetch_twitter
 from layer2.sentiment import run_sentiment_analysis
-from layer4.db_layer4 import init_layer4_tables
+from layer4.db_layer4 import init_layer4_tables, resolve_pending_paper_trades
 from layer4.signals import run_signal_generation
 from layer4.similarity import run_similarity_engine
+from notifications import notify
 
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
 
@@ -33,7 +34,6 @@ def run_pipeline():
 
         if technicals_fetched_today(ticker):
             print(f"      Technicals: skipped (already fetched today)")
-            # Still load for similarity engine
             from db import get_connection
             conn = get_connection()
             cur = conn.cursor()
@@ -59,7 +59,7 @@ def run_pipeline():
 
     # ── LAYER 2: Sentiment ────────────────────────────────────
     print("\n[LAYER 2] Sentiment Analysis")
-    sentiment_results = run_sentiment_analysis()
+    sentiment_results = run_sentiment_analysis() or []
     if sentiment_results:
         print("\n-- SENTIMENT --")
         for r in sentiment_results:
@@ -68,21 +68,26 @@ def run_pipeline():
 
     # ── LAYER 4.5: Similarity ─────────────────────────────────
     print("\n[LAYER 4.5] Similarity Engine")
-    similarity_results = run_similarity_engine(tech_data)
+    run_similarity_engine(tech_data)
 
     # ── LAYER 4: Signal Generation ────────────────────────────
     print("\n[LAYER 4] Pair Signal Generation")
-    signal_results = run_signal_generation()
+    signal_results = run_signal_generation() or []
 
     # ── FINAL SUMMARY ─────────────────────────────────────────
     print(f"\n{'='*60}")
     print("FINAL SIGNALS")
     print(f"{'='*60}")
     for r in signal_results:
-        hc = " *** HIGH CONFIDENCE TRADE ***" if r["high_confidence"] else ""
+        hc = " *** HIGH CONFIDENCE ***" if r.get("high_confidence") else ""
         arrow = f"LONG {r['ticker_a']}" if r["signal"] == "long_a" else \
                 (f"LONG {r['ticker_b']}" if r["signal"] == "long_b" else "NEUTRAL")
         print(f"  {r['pair']:12} -> {arrow:20} conf={r['confidence']:.2f}{hc}")
+
+    # ── NOTIFICATIONS ─────────────────────────────────────────
+    print("\n[NOTIFY]")
+    resolved = resolve_pending_paper_trades()
+    notify(sentiment_results, signal_results, resolved_trades=resolved)
 
     print(f"\n[OK] Pipeline complete. Next run in {INTERVAL} hours.")
 
