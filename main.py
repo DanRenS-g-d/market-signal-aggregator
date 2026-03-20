@@ -14,6 +14,7 @@ from layer4.db_layer4 import init_layer4_tables, resolve_pending_paper_trades
 from layer4.signals import run_signal_generation
 from layer4.similarity import run_similarity_engine
 from notifications import notify
+from pair_monitor import run_pair_monitor
 
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
 
@@ -83,6 +84,9 @@ def run_pipeline():
         arrow = f"LONG {r['ticker_a']}" if r["signal"] == "long_a" else \
                 (f"LONG {r['ticker_b']}" if r["signal"] == "long_b" else "NEUTRAL")
         print(f"  {r['pair']:12} -> {arrow:20} conf={r['confidence']:.2f}{hc}")
+
+    # ── PAIR MONITOR ──────────────────────────────────────────
+    run_pair_monitor()
 
     # ── NOTIFICATIONS ─────────────────────────────────────────
     print("\n[NOTIFY]")
