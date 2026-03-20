@@ -50,7 +50,7 @@ def get_pair_rolling_accuracy(pair_name: str) -> dict:
         FROM paper_trades pt
         JOIN pair_signals ps ON pt.pair_signal_id = ps.id
         WHERE ps.pair_name = %s AND pt.resolved = TRUE
-        ORDER BY pt.created_at DESC LIMIT %s
+        ORDER BY pt.opened_at DESC LIMIT %s
     """, (pair_name, MIN_TRADES))
     rows = cur.fetchall()
     cur.close(); conn.close()
