@@ -226,4 +226,11 @@ def notify(sentiment_results: list, signal_results: list, resolved_trades: int =
         print("    [Email] All neutral, no email sent.")
         return
     subject, html = build_email(sentiment_results, signal_results, resolved_trades)
+    
+    non_neutral = [r for r in signal_results if r["signal"] != "neutral"]
+    print(f"    [Email] Subject: {subject}")
+    for r in non_neutral:
+        ticker = r["ticker_a"] if r["signal"] == "long_a" else r["ticker_b"]
+        print(f"    [Email] Trade: BUY {ticker} | pair={r['pair']} | conf={r['confidence']:.2f}")
+    
     send_email(subject, html)
