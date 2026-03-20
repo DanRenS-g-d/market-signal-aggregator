@@ -226,11 +226,27 @@ def notify(sentiment_results: list, signal_results: list, resolved_trades: int =
         print("    [Email] All neutral, no email sent.")
         return
     subject, html = build_email(sentiment_results, signal_results, resolved_trades)
-    
+ 
+    # Print full trade details to Railway logs
     non_neutral = [r for r in signal_results if r["signal"] != "neutral"]
     print(f"    [Email] Subject: {subject}")
     for r in non_neutral:
         ticker = r["ticker_a"] if r["signal"] == "long_a" else r["ticker_b"]
-        print(f"    [Email] Trade: BUY {ticker} | pair={r['pair']} | conf={r['confidence']:.2f}")
-    
+        price  = get_current_price(ticker)
+        if price > 0:
+            sl   = round(price * (1 - STOP_LOSS_PCT), 2)
+            tp   = round(price * (1 + TAKE_PROFIT_PCT), 2)
+            s100 = max(1, int(100 / price))
+            s200 = max(1, int(200 / price))
+            s500 = max(1, int(500 / price))
+            print(f"    [Email] ══════════════════════════════")
+            print(f"    [Email] COMPRAR : {ticker} (NYSE)")
+            print(f"    [Email] Precio  : ${price}")
+            print(f"    [Email] TP      : ${tp} (+10%)")
+            print(f"    [Email] SL      : ${sl} (-5%)")
+            print(f"    [Email] Shares  : $100→{s100} | $200→{s200} | $500→{s500}")
+            print(f"    [Email] Par     : {r['pair']} | conf={r['confidence']:.2f}")
+        else:
+            print(f"    [Email] COMPRAR : {ticker} | par={r['pair']} | conf={r['confidence']:.2f} | precio N/A")
+ 
     send_email(subject, html)
