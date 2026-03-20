@@ -24,7 +24,7 @@ def run_pipeline():
     print(f"PIPELINE RUN at {datetime.utcnow().isoformat()}")
     print(f"{'='*60}")
 
-    # ── LAYER 1: Ingestion ────────────────────────────────────
+    # LAYER 1
     print("\n[LAYER 1] Data Ingestion")
     tech_data = {}
     for ticker in TICKERS:
@@ -58,7 +58,7 @@ def run_pipeline():
         insert_tweets(tweets)
         print(f"      Tweets: {len(tweets)}")
 
-    # ── LAYER 2: Sentiment ────────────────────────────────────
+    # LAYER 2
     print("\n[LAYER 2] Sentiment Analysis")
     sentiment_results = run_sentiment_analysis() or []
     if sentiment_results:
@@ -67,15 +67,15 @@ def run_pipeline():
             bar = "^" if r["signal"] == "bullish" else ("v" if r["signal"] == "bearish" else "-")
             print(f"  {bar} {r['ticker']:12} {r['signal'].upper():8} score={r['score']:+.3f}")
 
-    # ── LAYER 4.5: Similarity ─────────────────────────────────
+    # LAYER 4.5
     print("\n[LAYER 4.5] Similarity Engine")
     run_similarity_engine(tech_data)
 
-    # ── LAYER 4: Signal Generation ────────────────────────────
+    # LAYER 4
     print("\n[LAYER 4] Pair Signal Generation")
     signal_results = run_signal_generation() or []
 
-    # ── FINAL SUMMARY ─────────────────────────────────────────
+    # FINAL SUMMARY
     print(f"\n{'='*60}")
     print("FINAL SIGNALS")
     print(f"{'='*60}")
@@ -85,10 +85,13 @@ def run_pipeline():
                 (f"LONG {r['ticker_b']}" if r["signal"] == "long_b" else "NEUTRAL")
         print(f"  {r['pair']:12} -> {arrow:20} conf={r['confidence']:.2f}{hc}")
 
-    # ── PAIR MONITOR ──────────────────────────────────────────
-    run_pair_monitor()
+    # PAIR MONITOR
+    try:
+        run_pair_monitor()
+    except Exception as e:
+        print(f"    [Pair Monitor] Error (non-fatal): {e}")
 
-    # ── NOTIFICATIONS ─────────────────────────────────────────
+    # NOTIFICATIONS
     print("\n[NOTIFY]")
     resolved = resolve_pending_paper_trades()
     notify(sentiment_results, signal_results, resolved_trades=resolved)
