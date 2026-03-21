@@ -15,7 +15,7 @@ from layer4.signals import run_signal_generation
 from layer4.similarity import run_similarity_engine
 from notifications import notify
 from pair_monitor import run_pair_monitor
-from telegram_notify import notify_telegram
+from telegram_notify import notify_telegram_with_forex
 
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
 
@@ -96,7 +96,7 @@ def run_pipeline():
     print("\n[NOTIFY]")
     resolved = resolve_pending_paper_trades()
     notify(sentiment_results, signal_results, resolved_trades=resolved)
-    notify_telegram(sentiment_results, signal_results, resolved_trades=resolved)
+    notify_telegram_with_forex(sentiment_results, signal_results, resolved_trades=resolved)
     print(f"\n[OK] Pipeline complete. Next run in {INTERVAL} hours.")
 
 
