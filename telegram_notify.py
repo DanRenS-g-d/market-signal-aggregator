@@ -43,6 +43,16 @@ def get_current_price(ticker: str) -> float:
     return 0.0
  
  
+def get_allocation_pct(conf: int) -> int:
+    """Return capital allocation % based on confidence."""
+    if conf >= 75:
+        return 30
+    elif conf >= 50:
+        return 15
+    else:
+        return 0
+ 
+ 
 def build_telegram_message(sentiment_results: list, signal_results: list, resolved_trades: int = 0) -> str:
     from datetime import datetime
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
@@ -72,11 +82,13 @@ def build_telegram_message(sentiment_results: list, signal_results: list, resolv
             price  = get_current_price(ticker)
             conf   = int(r["confidence"] * 100)
             hc     = " 🌟" if r.get("high_confidence") else ""
+            alloc  = get_allocation_pct(conf)
  
             lines.append("")
             lines.append(f"📊 <b>COMPRAR {ticker}</b>{hc}")
             lines.append(f"Par: {r['pair']}")
             lines.append(f"Confianza: {conf}%")
+            lines.append(f"💼 Asignar: <b>{alloc}% del capital disponible</b>")
  
             if price > 0:
                 sl   = round(price * (1 - STOP_LOSS_PCT), 2)
@@ -87,7 +99,7 @@ def build_telegram_message(sentiment_results: list, signal_results: list, resolv
                 lines.append(f"Precio: <b>${price}</b>")
                 lines.append(f"✅ Take Profit: ${tp} (+10%)")
                 lines.append(f"🛑 Stop Loss: ${sl} (-5%)")
-                lines.append(f"💰 Shares: $100→{s100} | $200→{s200} | $500→{s500}")
+                lines.append(f"📊 Shares: $100→{s100} | $200→{s200} | $500→{s500}")
                 lines.append(f"📱 IBKR: busca <code>{ticker}</code> → Limit → GTC")
             else:
                 lines.append(f"⚠️ Precio no disponible — verificar en IBKR")
@@ -112,33 +124,6 @@ def notify_telegram(sentiment_results: list, signal_results: list, resolved_trad
     message = build_telegram_message(sentiment_results, signal_results, resolved_trades)
     if message:
         send_telegram(message)
- 
- 
-if __name__ == "__main__":
-    send_telegram("✅ Market Signal Aggregator conectado correctamente")
- 
- 
-def notify_telegram_with_forex(sentiment_results: list, signal_results: list, resolved_trades: int = 0):
-    """Extended notify that includes forex signals."""
-    from forex_signals import get_forex_signals, format_forex_for_telegram
- 
-    non_neutral = [r for r in signal_results if r["signal"] != "neutral"]
-    if not non_neutral and resolved_trades == 0:
-        print("    [Telegram] All neutral, no message sent.")
-        return
- 
-    # Build base message
-    message = build_telegram_message(sentiment_results, signal_results, resolved_trades)
-    if not message:
-        return
- 
-    # Add forex signals
-    forex_signals = get_forex_signals(signal_results)
-    if forex_signals:
-        forex_text = format_forex_for_telegram(forex_signals)
-        message = message + forex_text
- 
-    send_telegram(message)
  
  
 def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
@@ -169,3 +154,7 @@ def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
                 message = message + "\n" + tech_text
  
     send_telegram(message)
+ 
+ 
+if __name__ == "__main__":
+    send_telegram("✅ Market Signal Aggregator conectado correctamente")
