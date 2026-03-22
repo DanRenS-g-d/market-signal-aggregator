@@ -1,10 +1,10 @@
 """
 Forex Signal Translation Layer
 Translates stock/ETF signals into correlated forex pair signals.
+Includes confidence scores derived from source signal confidence.
 """
  
 TICKER_FOREX_MAP = {
-    # Colombia oil -> commodity currencies
     "EC": [
         ("USD/COP", "short", "strong", "Ecopetrol — oil up = COP stronger"),
         ("USD/MXN", "short", "medium", "Oil up = MXN stronger"),
@@ -19,37 +19,19 @@ TICKER_FOREX_MAP = {
     "CNEC.CN": [
         ("USD/COP", "short", "medium", "Colombian gas — energy up = COP stronger"),
     ],
- 
-    # Colombia banking -> COP
     "CIB": [
         ("USD/COP", "short", "medium", "Bancolombia — Colombian banking = COP strength"),
     ],
     "AVAL": [
         ("USD/COP", "short", "medium", "Grupo Aval — Colombian banking = COP strength"),
     ],
-    "PFBCOLOM.CL": [
-        ("USD/COP", "short", "weak",   "Davivienda — Colombian financial sector"),
-    ],
-    "CIBEST.CL": [
-        ("USD/COP", "short", "weak",   "Bancolombia BVC — COP correlated"),
-    ],
-    "GRUPSURA.CL": [
-        ("USD/COP", "short", "weak",   "Grupo Sura — Colombian holding"),
-    ],
-    "ISA.CL": [
-        ("USD/COP", "short", "weak",   "Colombian utilities — COP correlated"),
-    ],
-    "GEB.CL": [
-        ("USD/COP", "short", "weak",   "Colombian energy — COP correlated"),
-    ],
-    "CEMARGOS.CL": [
-        ("USD/COP", "short", "weak",   "Colombian materials — COP correlated"),
-    ],
-    "TGLS": [
-        ("USD/COP", "short", "weak",   "Tecnoglass — Colombian manufacturer"),
-    ],
- 
-    # Latin America ETFs
+    "PFBCOLOM.CL": [("USD/COP", "short", "weak", "Davivienda — Colombian financial sector")],
+    "CIBEST.CL":   [("USD/COP", "short", "weak", "Bancolombia BVC — COP correlated")],
+    "GRUPSURA.CL": [("USD/COP", "short", "weak", "Grupo Sura — Colombian holding")],
+    "ISA.CL":      [("USD/COP", "short", "weak", "Colombian utilities — COP correlated")],
+    "GEB.CL":      [("USD/COP", "short", "weak", "Colombian energy — COP correlated")],
+    "CEMARGOS.CL": [("USD/COP", "short", "weak", "Colombian materials — COP correlated")],
+    "TGLS":        [("USD/COP", "short", "weak", "Tecnoglass — Colombian manufacturer")],
     "EWZ": [
         ("USD/BRL", "short", "strong", "Brazil ETF — BRL direct correlation"),
         ("USD/COP", "short", "weak",   "EM risk-on spillover"),
@@ -67,17 +49,11 @@ TICKER_FOREX_MAP = {
         ("USD/PEN", "short", "strong", "Peru ETF — PEN direct correlation"),
         ("USD/CLP", "short", "weak",   "Andean markets correlation"),
     ],
- 
-    # Africa ETFs
-    "EZA": [
-        ("USD/ZAR", "short", "strong", "South Africa ETF — ZAR direct correlation"),
-    ],
+    "EZA": [("USD/ZAR", "short", "strong", "South Africa ETF — ZAR direct correlation")],
     "NGE": [
         ("USD/NGN", "short", "medium", "Nigeria ETF — NGN correlation"),
         ("USD/ZAR", "short", "weak",   "African markets spillover"),
     ],
- 
-    # Southeast Asia ETFs
     "EWY": [
         ("USD/KRW", "short", "strong", "Korea ETF — KRW direct correlation"),
         ("USD/TWD", "short", "weak",   "Asian tech risk-on"),
@@ -96,20 +72,15 @@ TICKER_FOREX_MAP = {
     ],
 }
  
-# Most liquid pairs available in IBKR (flag for execution priority)
 IBKR_LIQUID_PAIRS = {
     "USD/MXN", "USD/BRL", "USD/CAD",
     "USD/ZAR", "USD/KRW", "USD/TWD",
     "USD/COP", "USD/CLP", "USD/PEN",
 }
  
-STRENGTH_EMOJI = {
-    "strong": "🔴🔴🔴",
-    "medium": "🟡🟡",
-    "weak":   "🟢",
-}
- 
+STRENGTH_EMOJI = {"strong": "🔴🔴🔴", "medium": "🟡🟡", "weak": "🟢"}
 STRENGTH_ORDER = {"strong": 3, "medium": 2, "weak": 1}
+STRENGTH_MULTIPLIER = {"strong": 1.0, "medium": 0.67, "weak": 0.33}
  
  
 def get_forex_signals(signal_results: list) -> list:
@@ -119,13 +90,17 @@ def get_forex_signals(signal_results: list) -> list:
         if result["signal"] == "neutral":
             continue
  
-        ticker = result["ticker_a"] if result["signal"] == "long_a" else result["ticker_b"]
+        ticker     = result["ticker_a"] if result["signal"] == "long_a" else result["ticker_b"]
         confidence = result["confidence"]
         correlations = TICKER_FOREX_MAP.get(ticker, [])
  
         for pair, direction, strength, reason in correlations:
             if pair not in forex_votes:
-                forex_votes[pair] = {"long": 0.0, "short": 0.0, "reasons": [], "strength": "weak"}
+                forex_votes[pair] = {
+                    "long": 0.0, "short": 0.0,
+                    "confidence_sum": 0.0, "confidence_count": 0,
+                    "reasons": [], "strength": "weak"
+                }
  
             weight = STRENGTH_ORDER[strength] * confidence
  
@@ -134,6 +109,10 @@ def get_forex_signals(signal_results: list) -> list:
             else:
                 forex_votes[pair]["long"] += weight
  
+            # Confidence = source confidence × correlation strength multiplier
+            forex_conf = confidence * STRENGTH_MULTIPLIER[strength]
+            forex_votes[pair]["confidence_sum"]   += forex_conf
+            forex_votes[pair]["confidence_count"] += 1
             forex_votes[pair]["reasons"].append(f"{ticker} → {direction} {pair} ({strength})")
  
             if STRENGTH_ORDER[strength] > STRENGTH_ORDER[forex_votes[pair]["strength"]]:
@@ -145,19 +124,21 @@ def get_forex_signals(signal_results: list) -> list:
         if abs(net) < 0.1:
             continue
  
-        direction = "long" if net > 0 else "short"
+        direction  = "long" if net > 0 else "short"
         base, quote = pair.split("/")
-        action = f"BUY {base} / SELL {quote}" if direction == "long" else f"SELL {base} / BUY {quote}"
-        liquid = pair in IBKR_LIQUID_PAIRS
+        action     = f"BUY {base} / SELL {quote}" if direction == "long" else f"SELL {base} / BUY {quote}"
+        liquid     = pair in IBKR_LIQUID_PAIRS
+        avg_conf   = round(votes["confidence_sum"] / votes["confidence_count"], 2) if votes["confidence_count"] else 0.0
  
         forex_signals.append({
-            "pair":      pair,
-            "direction": direction,
-            "action":    action,
-            "strength":  votes["strength"],
-            "score":     round(abs(net), 3),
-            "reasons":   votes["reasons"][:2],
-            "liquid":    liquid,
+            "pair":       pair,
+            "direction":  direction,
+            "action":     action,
+            "strength":   votes["strength"],
+            "score":      round(abs(net), 3),
+            "confidence": avg_conf,
+            "reasons":    votes["reasons"][:2],
+            "liquid":     liquid,
         })
  
     forex_signals.sort(key=lambda x: (x["score"], x["liquid"]), reverse=True)
@@ -168,7 +149,6 @@ def format_forex_for_telegram(forex_signals: list) -> str:
     if not forex_signals:
         return ""
  
-    # Only show top 3 to keep message clean
     top = forex_signals[:3]
  
     lines = []
@@ -178,11 +158,13 @@ def format_forex_for_telegram(forex_signals: list) -> str:
     lines.append("━━━━━━━━━━━━━━━━━━━━")
  
     for sig in top:
-        emoji  = STRENGTH_EMOJI[sig["strength"]]
-        liquid = " ✅" if sig["liquid"] else " ⚠️ baja liquidez"
+        emoji    = STRENGTH_EMOJI[sig["strength"]]
+        liquid   = " ✅" if sig["liquid"] else " ⚠️ baja liquidez"
+        conf_pct = int(sig["confidence"] * 100)
         lines.append("")
         lines.append(f"{emoji} <b>{sig['pair']}</b>{liquid}")
         lines.append(f"Acción: {sig['action']}")
+        lines.append(f"Confianza: {conf_pct}%")
         if sig["reasons"]:
             lines.append(f"Por: {sig['reasons'][0]}")
  
