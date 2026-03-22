@@ -1,7 +1,7 @@
 """
 Forex Signal Translation Layer
 Translates stock/ETF signals into correlated forex pair signals.
-Includes confidence scores derived from source signal confidence.
+Includes confidence scores and TP/SL derived from current price.
 """
  
 TICKER_FOREX_MAP = {
@@ -78,9 +78,25 @@ IBKR_LIQUID_PAIRS = {
     "USD/COP", "USD/CLP", "USD/PEN",
 }
  
-STRENGTH_EMOJI = {"strong": "🔴🔴🔴", "medium": "🟡🟡", "weak": "🟢"}
-STRENGTH_ORDER = {"strong": 3, "medium": 2, "weak": 1}
+STRENGTH_EMOJI      = {"strong": "🔴🔴🔴", "medium": "🟡🟡", "weak": "🟢"}
+STRENGTH_ORDER      = {"strong": 3, "medium": 2, "weak": 1}
 STRENGTH_MULTIPLIER = {"strong": 1.0, "medium": 0.67, "weak": 0.33}
+ 
+TP_PCT = 0.02   # +2% take profit for forex
+SL_PCT = 0.01   # -1% stop loss for forex
+ 
+ 
+def get_forex_price(pair: str) -> float:
+    try:
+        import yfinance as yf
+        base, quote = pair.split("/")
+        symbol = f"{base}{quote}=X"
+        hist = yf.Ticker(symbol).history(period="1d")
+        if not hist.empty:
+            return round(float(hist["Close"].iloc[-1]), 6)
+    except Exception:
+        pass
+    return 0.0
  
  
 def get_forex_signals(signal_results: list) -> list:
@@ -109,7 +125,6 @@ def get_forex_signals(signal_results: list) -> list:
             else:
                 forex_votes[pair]["long"] += weight
  
-            # Confidence = source confidence × correlation strength multiplier
             forex_conf = confidence * STRENGTH_MULTIPLIER[strength]
             forex_votes[pair]["confidence_sum"]   += forex_conf
             forex_votes[pair]["confidence_count"] += 1
@@ -124,11 +139,24 @@ def get_forex_signals(signal_results: list) -> list:
         if abs(net) < 0.1:
             continue
  
-        direction  = "long" if net > 0 else "short"
+        direction   = "long" if net > 0 else "short"
         base, quote = pair.split("/")
-        action     = f"BUY {base} / SELL {quote}" if direction == "long" else f"SELL {base} / BUY {quote}"
-        liquid     = pair in IBKR_LIQUID_PAIRS
-        avg_conf   = round(votes["confidence_sum"] / votes["confidence_count"], 2) if votes["confidence_count"] else 0.0
+        action      = f"BUY {base} / SELL {quote}" if direction == "long" else f"SELL {base} / BUY {quote}"
+        liquid      = pair in IBKR_LIQUID_PAIRS
+        avg_conf    = round(votes["confidence_sum"] / votes["confidence_count"], 2) if votes["confidence_count"] else 0.0
+        price       = get_forex_price(pair)
+ 
+        # Calculate TP/SL based on direction
+        if price > 0:
+            if direction == "short":
+                tp = round(price * (1 - TP_PCT), 6)
+                sl = round(price * (1 + SL_PCT), 6)
+            else:
+                tp = round(price * (1 + TP_PCT), 6)
+                sl = round(price * (1 - SL_PCT), 6)
+        else:
+            tp = None
+            sl = None
  
         forex_signals.append({
             "pair":       pair,
@@ -139,6 +167,9 @@ def get_forex_signals(signal_results: list) -> list:
             "confidence": avg_conf,
             "reasons":    votes["reasons"][:2],
             "liquid":     liquid,
+            "price":      price,
+            "tp":         tp,
+            "sl":         sl,
         })
  
     forex_signals.sort(key=lambda x: (x["score"], x["liquid"]), reverse=True)
@@ -161,10 +192,19 @@ def format_forex_for_telegram(forex_signals: list) -> str:
         emoji    = STRENGTH_EMOJI[sig["strength"]]
         liquid   = " ✅" if sig["liquid"] else " ⚠️ baja liquidez"
         conf_pct = int(sig["confidence"] * 100)
+ 
         lines.append("")
         lines.append(f"{emoji} <b>{sig['pair']}</b>{liquid}")
         lines.append(f"Acción: {sig['action']}")
         lines.append(f"Confianza: {conf_pct}%")
+ 
+        if sig["price"] and sig["price"] > 0:
+            lines.append(f"Precio: {sig['price']}")
+            lines.append(f"✅ TP: {sig['tp']} (+{int(TP_PCT*100)}%)")
+            lines.append(f"🛑 SL: {sig['sl']} (-{int(SL_PCT*100)}%)")
+        else:
+            lines.append(f"⚠️ Precio no disponible")
+ 
         if sig["reasons"]:
             lines.append(f"Por: {sig['reasons'][0]}")
  
