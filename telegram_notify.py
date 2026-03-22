@@ -139,3 +139,33 @@ def notify_telegram_with_forex(sentiment_results: list, signal_results: list, re
         message = message + forex_text
  
     send_telegram(message)
+ 
+ 
+def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
+                                resolved_trades: int = 0, forex_tech: dict = None):
+    """Extended notify with forex signals and technical confirmation."""
+    from forex_signals import get_forex_signals, format_forex_for_telegram
+    from forex_technicals import format_forex_technicals_for_telegram
+ 
+    non_neutral = [r for r in signal_results if r["signal"] != "neutral"]
+    if not non_neutral and resolved_trades == 0:
+        print("    [Telegram] All neutral, no message sent.")
+        return
+ 
+    message = build_telegram_message(sentiment_results, signal_results, resolved_trades)
+    if not message:
+        return
+ 
+    # Add forex signals
+    forex_signals = get_forex_signals(signal_results)
+    if forex_signals:
+        forex_text = format_forex_for_telegram(forex_signals)
+        message = message + forex_text
+ 
+        # Add technical confirmation if available
+        if forex_tech:
+            tech_text = format_forex_technicals_for_telegram(forex_tech, forex_signals)
+            if tech_text:
+                message = message + "\n" + tech_text
+ 
+    send_telegram(message)

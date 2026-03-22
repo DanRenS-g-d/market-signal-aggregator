@@ -18,6 +18,7 @@ from pair_monitor import run_pair_monitor
 from telegram_notify import notify_telegram_with_forex
 from forex_signals import get_forex_signals
 from forex_paper import open_forex_paper_trades, resolve_forex_paper_trades
+from forex_technicals import run_forex_technicals
  
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
  
@@ -61,6 +62,14 @@ def run_pipeline():
         insert_tweets(tweets)
         print(f"      Tweets: {len(tweets)}")
  
+    # LAYER 1.5 — Forex Technicals
+    print("\n[LAYER 1.5] Forex Technicals")
+    try:
+        forex_tech = run_forex_technicals()
+    except Exception as e:
+        print(f"    [Forex Tech] Error (non-fatal): {e}")
+        forex_tech = {}
+ 
     # LAYER 2
     print("\n[LAYER 2] Sentiment Analysis")
     sentiment_results = run_sentiment_analysis() or []
@@ -94,16 +103,17 @@ def run_pipeline():
     except Exception as e:
         print(f"    [Pair Monitor] Error (non-fatal): {e}")
  
-    # NOTIFICATIONS + FOREX PAPER TRADING
+    # NOTIFICATIONS + FOREX
     print("\n[NOTIFY]")
     resolved = resolve_pending_paper_trades()
     notify(sentiment_results, signal_results, resolved_trades=resolved)
-    notify_telegram_with_forex(sentiment_results, signal_results, resolved_trades=resolved)
+    notify_telegram_with_forex(sentiment_results, signal_results,
+                                resolved_trades=resolved, forex_tech=forex_tech)
  
     # Forex paper trading
     try:
-        forex_sigs = get_forex_signals(signal_results) if signal_results else []
-        opened = open_forex_paper_trades(forex_sigs)
+        forex_sigs     = get_forex_signals(signal_results) if signal_results else []
+        open_forex_paper_trades(forex_sigs)
         forex_resolved = resolve_forex_paper_trades()
         if forex_resolved:
             print(f"    [Forex Paper] {forex_resolved} trade(s) resolved")
