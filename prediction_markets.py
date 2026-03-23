@@ -11,50 +11,252 @@ from datetime import datetime
 DIVERGENCE_THRESHOLD = 0.20  # 20% gap triggers alert
  
 # Keywords to search for relevant markets
+# Bond ETFs — move opposite to stocks (hedging)
+BOND_ETFS = ["TLT", "IEF", "SHY", "AGG", "BND", "LQD", "HYG", "EMB", "BNDX"]
+ 
+# All tickers in system
+ALL_TICKERS = [
+    # Colombia stocks
+    "EC", "GPRK", "CNEC.CN", "CIB", "AVAL", "TGLS",
+    "CIBEST.CL", "PFCIBEST.CL", "ISA.CL", "GEB.CL",
+    "GRUPSURA.CL", "PFGRUPSURA.CL", "CEMARGOS.CL", "PFBCOLOM.CL",
+    # Latam ETFs
+    "EWZ", "EWW", "ECH", "EPU",
+    # Africa ETFs
+    "EZA", "NGE",
+    # Asia ETFs
+    "EWY", "EWT", "EIDO", "THD",
+    # Bond ETFs
+] + BOND_ETFS
+ 
 SEARCH_KEYWORDS = {
-    # Oil & Energy — directly related to EC, GPRK
+    # ── Oil & Energy ──────────────────────────────────────────
     "oil":              ["EC", "GPRK"],
     "crude":            ["EC", "GPRK"],
+    "petroleo":         ["EC", "GPRK"],
     "opec":             ["EC", "GPRK"],
     "brent":            ["EC", "GPRK"],
     "WTI":              ["EC", "GPRK"],
     "energy":           ["EC", "GPRK"],
+    "commodities":      ["EC", "GPRK", "EWZ", "ECH"],
+    "commodity":        ["EC", "GPRK"],
+    "gold":             ["EZA", "ECH"],
+    "silver":           ["ECH", "EPU"],
+    "copper":           ["ECH", "EPU"],
  
-    # Fed & Rates — affects banking stocks and EM
-    "fed":              ["CIB", "AVAL", "EWZ", "EWW"],
-    "rate cut":         ["CIB", "AVAL", "EWZ", "EWW"],
-    "rate hike":        ["CIB", "AVAL"],
-    "federal reserve":  ["CIB", "AVAL"],
-    "interest rate":    ["CIB", "AVAL"],
-    "inflation":        ["CIB", "AVAL", "EWZ"],
+    # ── Fed & Macro ────────────────────────────────────────────
+    "fed":              ["CIB", "AVAL", "EWZ", "EWW", "TLT", "IEF"],
+    "fomc":             ["CIB", "AVAL", "TLT", "IEF"],
+    "powell":           ["CIB", "AVAL", "TLT"],
+    "rate cut":         ["CIB", "AVAL", "EWZ", "TLT", "IEF"],
+    "rate hike":        ["CIB", "AVAL", "TLT", "IEF"],
+    "federal reserve":  ["CIB", "AVAL", "TLT"],
+    "interest rate":    ["CIB", "AVAL", "TLT", "IEF", "SHY"],
+    "tasa interes":     ["CIB", "AVAL"],
+    "inflation":        ["CIB", "AVAL", "EWZ", "TLT"],
+    "inflacion":        ["CIB", "AVAL"],
+    "cpi":              ["CIB", "AVAL", "TLT"],
+    "gdp":              ["EWZ", "EWW", "EWY"],
+    "pib":              ["EWZ", "EWW"],
+    "unemployment":     ["EWZ", "EWW", "TLT"],
+    "jobs report":      ["EWZ", "EWW", "TLT"],
+    "housing":          ["EWZ", "EWW"],
+    "real estate":      ["EWZ", "EWW"],
  
-    # US Economy — affects all EM ETFs
-    "recession":        ["EWZ", "EWW", "EWY", "ECH"],
-    "S&P 500":          ["EWZ", "EWW", "EWY", "EWT"],
+    # ── US Markets ─────────────────────────────────────────────
+    "recession":        ["EWZ", "EWW", "EWY", "ECH", "TLT", "IEF"],
+    "recesion":         ["EWZ", "EWW", "TLT"],
+    "S&P":              ["EWZ", "EWW", "EWY", "EWT"],
+    "sp500":            ["EWZ", "EWW", "EWY"],
     "stock market":     ["EWZ", "EWW", "EWY"],
-    "GDP":              ["EWZ", "EWW"],
-    "unemployment":     ["EWZ", "EWW"],
+    "mercado":          ["EWZ", "EWW"],
+    "equities":         ["EWZ", "EWW", "EWY"],
+    "acciones":         ["EC", "CIB", "AVAL"],
+    "earnings":         ["EC", "CIB", "AVAL", "EWZ"],
+    "ipo":              ["EWZ", "EWW", "EWY"],
+    "merger":           ["EC", "CIB"],
+    "acquisition":      ["EC", "CIB"],
+    "macro":            ["EWZ", "EWW", "EWY", "TLT"],
  
-    # EM specific
-    "emerging":         ["EWZ", "EWW", "ECH", "EPU", "EWY"],
-    "brazil":           ["EWZ"],
-    "mexico":           ["EWW"],
-    "korea":            ["EWY"],
-    "taiwan":           ["EWT"],
+    # ── Bonds ──────────────────────────────────────────────────
+    "treasury":         ["TLT", "IEF", "SHY"],
+    "treasuries":       ["TLT", "IEF", "SHY"],
+    "bond":             ["TLT", "IEF", "AGG", "BND"],
+    "bonos":            ["TLT", "IEF"],
+    "yield":            ["TLT", "IEF", "CIB", "AVAL"],
+    "rendimiento":      ["TLT", "IEF"],
+    "credit":           ["LQD", "HYG"],
+    "high yield":       ["HYG"],
+    "emerging bond":    ["EMB"],
+ 
+    # ── Tech ───────────────────────────────────────────────────
     "semiconductor":    ["EWT", "EWY"],
+    "tech":             ["EWT", "EWY"],
+    "tecnologia":       ["EWT", "EWY"],
     "TSMC":             ["EWT"],
     "Samsung":          ["EWY"],
-    "south africa":     ["EZA"],
-    "nigeria":          ["NGE"],
-    "colombia":         ["EC", "CIB", "AVAL"],
-    "peso":             ["EC", "CIB", "AVAL"],
-    "dollar":           ["EC", "EWZ", "EWW"],
+    "big tech":         ["EWT", "EWY"],
+    "apple":            ["EWT", "EWY"],
+    "nvidia":           ["EWT", "EWY"],
+    "ai":               ["EWT", "EWY"],
+    "inteligencia artificial": ["EWT", "EWY"],
  
-    # Trade & Geopolitics — affects ETFs
-    "tariff":           ["EWZ", "EWW", "EWY", "EWT"],
-    "trade war":        ["EWY", "EWT", "EIDO"],
+    # ── Colombia specific ──────────────────────────────────────
+    "ecopetrol":        ["EC"],
+    "bancolombia":      ["CIB"],
+    "grupo aval":       ["AVAL"],
+    "davivienda":       ["PFBCOLOM.CL"],
+    "geopark":          ["GPRK"],
+    "tecnoglass":       ["TGLS"],
+    "grupo sura":       ["GRUPSURA.CL"],
+    "cementos argos":   ["CEMARGOS.CL"],
+    "ISA energia":      ["ISA.CL"],
+    "colombia":         ["EC", "CIB", "AVAL"],
+    "colombiano":       ["EC", "CIB", "AVAL"],
+    "colcap":           ["EC", "CIB", "AVAL", "GRUPSURA.CL", "CEMARGOS.CL"],
+    "peso colombiano":  ["EC", "CIB", "AVAL"],
+ 
+    # ── Latin America ──────────────────────────────────────────
+    "brazil":           ["EWZ"],
+    "brasil":           ["EWZ"],
+    "petrobras":        ["EWZ"],
+    "mexico":           ["EWW"],
+    "pemex":            ["EWW"],
+    "chile":            ["ECH"],
+    "codelco":          ["ECH"],
+    "peru":             ["EPU"],
+    "latam":            ["EWZ", "EWW", "ECH", "EPU"],
+    "america latina":   ["EWZ", "EWW", "ECH", "EPU"],
+    "emerging":         ["EWZ", "EWW", "ECH", "EPU", "EWY"],
+    "mercados emergentes": ["EWZ", "EWW", "ECH", "EPU", "EWY"],
+ 
+    # ── Asia ───────────────────────────────────────────────────
+    "korea":            ["EWY"],
+    "corea":            ["EWY"],
+    "taiwan":           ["EWT"],
+    "indonesia":        ["EIDO"],
+    "thailand":         ["THD"],
+    "tailandia":        ["THD"],
     "china":            ["EWY", "EWT"],
+    "trade war":        ["EWY", "EWT", "EIDO"],
+    "tariff":           ["EWZ", "EWW", "EWY", "EWT"],
+    "arancel":          ["EWZ", "EWW", "EWY"],
+ 
+    # ── Africa ─────────────────────────────────────────────────
+    "south africa":     ["EZA"],
+    "sudafrica":        ["EZA"],
+    "nigeria":          ["NGE"],
+    "africa":           ["EZA", "NGE"],
+ 
+    # ── Forex ──────────────────────────────────────────────────
+    "dollar":           ["EC", "EWZ", "EWW", "TLT"],
+    "dolar":            ["EC", "EWZ", "EWW"],
+    "forex":            ["EC", "EWZ", "EWW"],
+    "exchange rate":    ["EC", "EWZ", "EWW"],
+    "tasa cambio":      ["EC", "EWZ"],
+    "devaluation":      ["EWZ", "EWW", "EZA"],
+    "devaluacion":      ["EWZ", "EWW"],
     "sanctions":        ["EZA", "NGE"],
+    "geopolitics":      ["EZA", "NGE", "EWY"],
+    "geopolitica":      ["EZA", "NGE"],
+ 
+    # ── Brazil companies (EWZ) ────────────────────────────────
+    "petrobras":        ["EWZ"],
+    "vale":             ["EWZ"],
+    "itau":             ["EWZ"],
+    "bradesco":         ["EWZ"],
+    "ambev":            ["EWZ"],
+    "embraer":          ["EWZ"],
+    "eletrobras":       ["EWZ"],
+    "banco do brasil":  ["EWZ"],
+    "weg":              ["EWZ"],
+    "suzano":           ["EWZ"],
+    "ibovespa":         ["EWZ"],
+    "bovespa":          ["EWZ"],
+ 
+    # ── Mexico companies (EWW) ────────────────────────────────
+    "femsa":            ["EWW"],
+    "america movil":    ["EWW"],
+    "walmex":           ["EWW"],
+    "grupo mexico":     ["EWW"],
+    "cemex":            ["EWW"],
+    "banorte":          ["EWW"],
+    "televisa":         ["EWW"],
+    "gruma":            ["EWW"],
+    "bmv":              ["EWW"],
+ 
+    # ── Chile companies (ECH) ─────────────────────────────────
+    "falabella":        ["ECH"],
+    "copec":            ["ECH"],
+    "entel":            ["ECH"],
+    "banco chile":      ["ECH"],
+    "cencosud":         ["ECH"],
+    "sqm":              ["ECH"],
+    "antofagasta":      ["ECH"],
+    "ipsa":             ["ECH"],
+ 
+    # ── Peru companies (EPU) ──────────────────────────────────
+    "credicorp":        ["EPU"],
+    "buenaventura":     ["EPU"],
+    "alicorp":          ["EPU"],
+    "intercorp":        ["EPU"],
+    "bvl":              ["EPU"],
+ 
+    # ── South Africa companies (EZA) ──────────────────────────
+    "naspers":          ["EZA"],
+    "prosus":           ["EZA"],
+    "sasol":            ["EZA"],
+    "anglo american":   ["EZA"],
+    "standard bank":    ["EZA"],
+    "firstrand":        ["EZA"],
+    "mtn":              ["EZA"],
+    "shoprite":         ["EZA"],
+    "jse":              ["EZA"],
+ 
+    # ── Nigeria companies (NGE) ───────────────────────────────
+    "dangote":          ["NGE"],
+    "gtbank":           ["NGE"],
+    "zenith bank":      ["NGE"],
+    "access bank":      ["NGE"],
+    "nnpc":             ["NGE"],
+    "airtel nigeria":   ["NGE"],
+ 
+    # ── Korea companies (EWY) ─────────────────────────────────
+    "samsung":          ["EWY"],
+    "lg":               ["EWY"],
+    "hyundai":          ["EWY"],
+    "sk hynix":         ["EWY"],
+    "posco":            ["EWY"],
+    "kakao":            ["EWY"],
+    "naver":            ["EWY"],
+    "kia":              ["EWY"],
+    "kospi":            ["EWY"],
+ 
+    # ── Taiwan companies (EWT) ────────────────────────────────
+    "tsmc":             ["EWT"],
+    "mediatek":         ["EWT"],
+    "foxconn":          ["EWT"],
+    "asus":             ["EWT"],
+    "acer":             ["EWT"],
+    "taiex":            ["EWT"],
+    "taiwan semi":      ["EWT"],
+ 
+    # ── Indonesia companies (EIDO) ────────────────────────────
+    "bank central asia": ["EIDO"],
+    "bank rakyat":      ["EIDO"],
+    "telkom indonesia": ["EIDO"],
+    "astra":            ["EIDO"],
+    "bumi resources":   ["EIDO"],
+    "idx indonesia":    ["EIDO"],
+ 
+    # ── Thailand companies (THD) ──────────────────────────────
+    "ptt":              ["THD"],
+    "advanced info":    ["THD"],
+    "kasikorn":         ["THD"],
+    "siam cement":      ["THD"],
+    "bangkok bank":     ["THD"],
+    "set index":        ["THD"],
+    "set thailand":     ["THD"],
 }
  
 # Only accept markets with these financial keywords in the question
