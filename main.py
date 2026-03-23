@@ -21,6 +21,7 @@ from forex_paper import open_forex_paper_trades, resolve_forex_paper_trades
 from forex_technicals import run_forex_technicals
 from prediction_markets import run_prediction_markets, format_divergences_for_telegram
 from volatility import run_volatility, format_volatility_for_telegram, adjust_confidence_for_volatility
+from regime_detector import run_regime_detector, apply_regime_to_signals, format_regime_for_telegram
 from telegram_notify import send_telegram
  
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
@@ -94,9 +95,18 @@ def run_pipeline():
     print("\n[LAYER 4.5] Similarity Engine")
     run_similarity_engine(tech_data)
  
-    # LAYER 4
+    # LAYER 4 — Regime Detection
+    print("\n[LAYER 4] Regime Detection")
+    regimes = {}
+    try:
+        regimes = run_regime_detector(PAIRS)
+    except Exception as e:
+        print(f"    [Regime] Error (non-fatal): {e}")
+ 
+    # LAYER 4 — Signal Generation
     print("\n[LAYER 4] Pair Signal Generation")
-    signal_results = run_signal_generation() or []
+    raw_signals    = run_signal_generation() or []
+    signal_results = apply_regime_to_signals(raw_signals, regimes) if regimes else raw_signals
  
     # FINAL SUMMARY
     print(f"\n{'='*60}")
@@ -126,7 +136,7 @@ def run_pipeline():
         vol_context = {}
     notify_telegram_with_forex(sentiment_results, signal_results,
                                 resolved_trades=resolved, forex_tech=forex_tech,
-                                vol_context=vol_context)
+                                vol_context=vol_context, regimes=regimes)
  
     # Forex paper trading
     try:
