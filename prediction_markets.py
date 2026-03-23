@@ -12,21 +12,49 @@ DIVERGENCE_THRESHOLD = 0.20  # 20% gap triggers alert
  
 # Keywords to search for relevant markets
 SEARCH_KEYWORDS = {
-    "oil price":        ["EC", "GPRK"],
-    "crude oil":        ["EC", "GPRK"],
-    "fed rate":         ["CIB", "AVAL"],
-    "federal reserve":  ["CIB", "AVAL"],
-    "brazil gdp":       ["EWZ"],
-    "brazil economy":   ["EWZ"],
-    "mexico economy":   ["EWW"],
-    "colombia economy": ["EC", "CIB", "AVAL"],
-    "emerging market":  ["EWZ", "EWW", "ECH", "EPU"],
-    "korea economy":    ["EWY"],
-    "taiwan economy":   ["EWT"],
-    "south africa":     ["EZA"],
-    "nigeria oil":      ["NGE"],
+    # Oil & Energy — directly related to EC, GPRK
+    "oil":              ["EC", "GPRK"],
+    "crude":            ["EC", "GPRK"],
     "opec":             ["EC", "GPRK"],
-    "recession":        ["EWZ", "EWW", "EWY"],
+    "brent":            ["EC", "GPRK"],
+    "WTI":              ["EC", "GPRK"],
+    "energy":           ["EC", "GPRK"],
+ 
+    # Fed & Rates — affects banking stocks and EM
+    "fed":              ["CIB", "AVAL", "EWZ", "EWW"],
+    "rate cut":         ["CIB", "AVAL", "EWZ", "EWW"],
+    "rate hike":        ["CIB", "AVAL"],
+    "federal reserve":  ["CIB", "AVAL"],
+    "interest rate":    ["CIB", "AVAL"],
+    "inflation":        ["CIB", "AVAL", "EWZ"],
+ 
+    # US Economy — affects all EM ETFs
+    "recession":        ["EWZ", "EWW", "EWY", "ECH"],
+    "S&P 500":          ["EWZ", "EWW", "EWY", "EWT"],
+    "stock market":     ["EWZ", "EWW", "EWY"],
+    "GDP":              ["EWZ", "EWW"],
+    "unemployment":     ["EWZ", "EWW"],
+ 
+    # EM specific
+    "emerging":         ["EWZ", "EWW", "ECH", "EPU", "EWY"],
+    "brazil":           ["EWZ"],
+    "mexico":           ["EWW"],
+    "korea":            ["EWY"],
+    "taiwan":           ["EWT"],
+    "semiconductor":    ["EWT", "EWY"],
+    "TSMC":             ["EWT"],
+    "Samsung":          ["EWY"],
+    "south africa":     ["EZA"],
+    "nigeria":          ["NGE"],
+    "colombia":         ["EC", "CIB", "AVAL"],
+    "peso":             ["EC", "CIB", "AVAL"],
+    "dollar":           ["EC", "EWZ", "EWW"],
+ 
+    # Trade & Geopolitics — affects ETFs
+    "tariff":           ["EWZ", "EWW", "EWY", "EWT"],
+    "trade war":        ["EWY", "EWT", "EIDO"],
+    "china":            ["EWY", "EWT"],
+    "sanctions":        ["EZA", "NGE"],
 }
  
 # Only accept markets with these financial keywords in the question
