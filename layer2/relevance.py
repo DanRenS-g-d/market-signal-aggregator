@@ -65,6 +65,14 @@ def filter_articles(ticker: str, articles: list[dict]) -> tuple[list[dict], dict
     return relevant, {"total": len(articles), "relevant": len(relevant),
                       "filtered": len(filtered_out), "filtered_items": filtered_out}
  
+# Bond ETF keywords
+BOND_ETF_KEYWORDS = {
+    "TLT":  ["tlt", "tlt etf", "us treasury", "long bonds", "20 year treasury", "bond market", "treasuries"],
+    "IEF":  ["ief", "ief etf", "10 year treasury", "intermediate bonds", "us bonds"],
+    "HYG":  ["hyg", "hyg etf", "high yield", "junk bonds", "credit spread", "corporate bonds"],
+    "EMB":  ["emb", "emb etf", "emerging market bonds", "em bonds", "sovereign debt"],
+}
+ 
 # ETF keywords (append to existing TICKER_KEYWORDS)
 ETF_KEYWORDS = {
     "EWZ":  ["ewz", "brazil etf", "ishares brazil", "brazil stocks", "bovespa", "petrobras", "vale"],
@@ -81,8 +89,9 @@ ETF_KEYWORDS = {
  
 # Merge into main TICKER_KEYWORDS
 TICKER_KEYWORDS.update(ETF_KEYWORDS)
+TICKER_KEYWORDS.update(BOND_ETF_KEYWORDS)
  
-# No noisy domains for ETFs
-for etf in ETF_KEYWORDS:
+# No noisy domains for ETFs or bonds
+for etf in list(ETF_KEYWORDS.keys()) + list(BOND_ETF_KEYWORDS.keys()):
     if etf not in NOISY_DOMAINS:
         NOISY_DOMAINS[etf] = []

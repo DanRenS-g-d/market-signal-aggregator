@@ -32,6 +32,13 @@ PAIRS = [
     {"name": "Korea vs Taiwan",       "a": "EWY",        "b": "EWT",           "a_name": "Korea ETF",   "b_name": "Taiwan ETF", "sector": "asia"},
     {"name": "Indonesia vs Thailand", "a": "EIDO",       "b": "THD",           "a_name": "Indonesia ETF","b_name": "Thailand ETF","sector": "asia"},
     {"name": "Korea vs Indonesia",    "a": "EWY",        "b": "EIDO",          "a_name": "Korea ETF",   "b_name": "Indonesia ETF","sector": "asia"},
+ 
+    # Risk-On vs Risk-Off (Stocks vs Bonds)
+    {"name": "Brazil vs Long Bonds",  "a": "EWZ",        "b": "TLT",           "a_name": "Brazil ETF",  "b_name": "US Long Bonds","sector": "risk"},
+    {"name": "Korea vs Long Bonds",   "a": "EWY",        "b": "TLT",           "a_name": "Korea ETF",   "b_name": "US Long Bonds","sector": "risk"},
+    {"name": "EM vs US Bonds",        "a": "EWZ",        "b": "IEF",           "a_name": "Brazil ETF",  "b_name": "US Mid Bonds", "sector": "risk"},
+    {"name": "HY vs IG Bonds",        "a": "HYG",        "b": "IEF",           "a_name": "High Yield",  "b_name": "Investment Grade","sector": "credit"},
+    {"name": "EM Bonds vs US Bonds",  "a": "EMB",        "b": "TLT",           "a_name": "EM Bonds",    "b_name": "US Long Bonds","sector": "credit"},
 ]
  
 SEARCH_TERMS = {
@@ -66,6 +73,12 @@ SEARCH_TERMS = {
     "EWT":           ["EWT ETF", "Taiwan stocks", "iShares Taiwan", "Taiwan market"],
     "EIDO":          ["EIDO ETF", "Indonesia stocks", "iShares Indonesia"],
     "THD":           ["THD ETF", "Thailand stocks", "iShares Thailand"],
+ 
+    # Bond ETFs
+    "TLT":           ["TLT ETF", "US treasury bonds", "long bonds", "20 year treasury", "bond market"],
+    "IEF":           ["IEF ETF", "US treasury bonds", "10 year treasury", "intermediate bonds"],
+    "HYG":           ["HYG ETF", "high yield bonds", "junk bonds", "credit spreads"],
+    "EMB":           ["EMB ETF", "emerging market bonds", "EM bonds", "sovereign debt"],
 }
  
 TICKERS = list(SEARCH_TERMS.keys())
@@ -102,4 +115,10 @@ YAHOO_MAP = {
     "EWT":           "EWT",
     "EIDO":          "EIDO",
     "THD":           "THD",
+ 
+    # Bond ETFs
+    "TLT":           "TLT",
+    "IEF":           "IEF",
+    "HYG":           "HYG",
+    "EMB":           "EMB",
 }
