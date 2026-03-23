@@ -5,16 +5,16 @@ Layer 4 DB helpers — creates and manages:
   - source_reputation  : per-domain precision tracking
   - similarity_corpus  : historical setups for matching
 """
-
+ 
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from db import get_connection
-
-
+ 
+ 
 def init_layer4_tables():
     conn = get_connection()
     cur = conn.cursor()
-
+ 
     # ── Pair signals ──────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pair_signals (
@@ -33,7 +33,7 @@ def init_layer4_tables():
             created_at      TIMESTAMP DEFAULT NOW()
         );
     """)
-
+ 
     # ── Paper trades ──────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS paper_trades (
@@ -50,7 +50,7 @@ def init_layer4_tables():
             resolved        BOOLEAN DEFAULT FALSE
         );
     """)
-
+ 
     # ── Source reputation ─────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS source_reputation (
@@ -70,7 +70,7 @@ def init_layer4_tables():
             UNIQUE(domain, ticker, article_title)
         );
     """)
-
+ 
     # ── Similarity corpus ─────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS similarity_corpus (
@@ -91,13 +91,13 @@ def init_layer4_tables():
             UNIQUE(ticker, date)
         );
     """)
-
+ 
     conn.commit()
     cur.close()
     conn.close()
     print("[DB] Layer 4 tables ready.")
-
-
+ 
+ 
 def save_pair_signal(pair_name, ticker_a, ticker_b, signal, confidence,
                      sentiment_a, sentiment_b, rsi_a, rsi_b,
                      similarity_score, sources_used):
@@ -116,8 +116,8 @@ def save_pair_signal(pair_name, ticker_a, ticker_b, signal, confidence,
     row = cur.fetchone()
     conn.commit(); cur.close(); conn.close()
     return row[0] if row else None
-
-
+ 
+ 
 def save_paper_trade(pair_signal_id, ticker, direction, entry_price):
     conn = get_connection()
     cur = conn.cursor()
@@ -128,8 +128,8 @@ def save_paper_trade(pair_signal_id, ticker, direction, entry_price):
     row = cur.fetchone()
     conn.commit(); cur.close(); conn.close()
     return row[0] if row else None
-
-
+ 
+ 
 def resolve_pending_paper_trades():
     """Check paper trades opened 5 days ago and resolve them."""
     import yfinance as yf
@@ -143,17 +143,28 @@ def resolve_pending_paper_trades():
           AND entry_date <= NOW() - INTERVAL '5 days'
     """)
     rows = cur.fetchall()
+    # Batch fetch prices to avoid rate limiting
+    import time
+    unique_tickers = list(set(r[1] for r in rows))
+    yahoo_map = {"CNEC.CN": "CNE.TO"}
+    price_cache = {}
+    for ticker in unique_tickers:
+        symbol = yahoo_map.get(ticker, ticker)
+        try:
+            hist = yf.Ticker(symbol).history(period="10d")
+            if not hist.empty:
+                price_cache[ticker] = float(hist["Close"].iloc[-1])
+            time.sleep(0.3)  # avoid rate limiting
+        except Exception:
+            pass
+ 
     resolved = 0
     for row in rows:
         trade_id, ticker, direction, entry_price, entry_date = row
         try:
-            # Map Colombian tickers to Yahoo symbols
-            yahoo_map = {"CNEC.CN": "CNE.TO", "PFBCOLOM.CL": "PFBCOLOM.CL", "EC": "EC", "CIB": "CIB"}
-            symbol = yahoo_map.get(ticker, ticker)
-            hist = yf.Ticker(symbol).history(period="10d")
-            if hist.empty:
+            if ticker not in price_cache:
                 continue
-            exit_price = float(hist["Close"].iloc[-1])
+            exit_price = price_cache[ticker]
             if entry_price and entry_price > 0:
                 pnl = ((exit_price - float(entry_price)) / float(entry_price)) * 100
                 if direction == "short":
@@ -170,8 +181,8 @@ def resolve_pending_paper_trades():
             print(f"    [Paper] Error resolving trade {trade_id}: {e}")
     conn.commit(); cur.close(); conn.close()
     return resolved
-
-
+ 
+ 
 def upsert_source_reputation(domain, ticker, article_title, predicted_signal, week_number):
     conn = get_connection()
     cur = conn.cursor()
@@ -182,8 +193,8 @@ def upsert_source_reputation(domain, ticker, article_title, predicted_signal, we
         ON CONFLICT (domain, ticker, article_title) DO NOTHING
     """, (domain, ticker, article_title, predicted_signal, week_number))
     conn.commit(); cur.close(); conn.close()
-
-
+ 
+ 
 def prune_worst_sources(min_weeks=25, prune_pct=0.10):
     """After 25 weeks, remove bottom decile of sources by precision."""
     conn = get_connection()

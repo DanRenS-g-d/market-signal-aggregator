@@ -12,26 +12,30 @@ DIVERGENCE_THRESHOLD = 0.20  # 20% gap triggers alert
  
 # Keywords to search for relevant markets
 SEARCH_KEYWORDS = {
-    # Macro / EM
-    "emerging markets": ["EWZ", "EWW", "ECH", "EPU", "EZA", "NGE", "EWY", "EWT", "EIDO", "THD"],
-    "brazil":           ["EWZ"],
-    "mexico":           ["EWW"],
-    "colombia":         ["EC", "CIB", "AVAL"],
-    "oil":              ["EC", "GPRK"],
-    "crude":            ["EC", "GPRK"],
+    "oil price":        ["EC", "GPRK"],
+    "crude oil":        ["EC", "GPRK"],
     "fed rate":         ["CIB", "AVAL"],
-    "interest rate":    ["CIB", "AVAL"],
-    "korea":            ["EWY"],
-    "taiwan":           ["EWT"],
-    "indonesia":        ["EIDO"],
+    "federal reserve":  ["CIB", "AVAL"],
+    "brazil gdp":       ["EWZ"],
+    "brazil economy":   ["EWZ"],
+    "mexico economy":   ["EWW"],
+    "colombia economy": ["EC", "CIB", "AVAL"],
+    "emerging market":  ["EWZ", "EWW", "ECH", "EPU"],
+    "korea economy":    ["EWY"],
+    "taiwan economy":   ["EWT"],
     "south africa":     ["EZA"],
-    "nigeria":          ["NGE"],
-    "latam":            ["EWZ", "EWW", "ECH", "EPU"],
-    "latin america":    ["EWZ", "EWW", "ECH", "EPU"],
-    "peso":             ["EC", "AVAL", "CIB"],
-    "petrobras":        ["EWZ"],
-    "pemex":            ["EWW"],
+    "nigeria oil":      ["NGE"],
+    "opec":             ["EC", "GPRK"],
+    "recession":        ["EWZ", "EWW", "EWY"],
 }
+ 
+# Only accept markets with these financial keywords in the question
+FINANCIAL_KEYWORDS = [
+    "gdp", "economy", "economic", "recession", "inflation", "rate", "market",
+    "stock", "oil", "crude", "opec", "fed", "central bank", "currency",
+    "peso", "real", "won", "rand", "rupiah", "baht", "dollar", "etf",
+    "emerging", "index", "trade", "export", "import", "growth", "deficit",
+]
  
  
 # ── Polymarket ────────────────────────────────────────────────────────────────
@@ -56,10 +60,26 @@ def fetch_polymarket_markets(keyword: str) -> list:
     return []
  
  
+def is_financial_market(question: str) -> bool:
+    """Filter out non-financial markets (sports, entertainment, etc)."""
+    q = question.lower()
+    # Reject if contains entertainment/sports keywords
+    reject = ["nba", "nfl", "nhl", "mlb", "ufc", "oscars", "grammy", "celebrity",
+              "movie", "film", "actor", "actress", "singer", "album", "song",
+              "game", "gta", "playstation", "xbox", "manga", "anime",
+              "kardashian", "trump tweet", "elon tweet", "viral"]
+    if any(r in q for r in reject):
+        return False
+    # Accept if contains financial keywords
+    return any(f in q for f in FINANCIAL_KEYWORDS)
+ 
+ 
 def parse_polymarket_market(market: dict) -> dict | None:
     """Extract relevant fields from a Polymarket market."""
     try:
         question = market.get("question", "")
+        if not is_financial_market(question):
+            return None
         outcomes = market.get("outcomes", "[]")
         prices   = market.get("outcomePrices", "[]")
  
