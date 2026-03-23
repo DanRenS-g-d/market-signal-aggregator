@@ -58,27 +58,59 @@ SEARCH_TERMS = {
     "CEMARGOS.CL":   ["Cementos Argos", "CEMARGOS", "Argos cemento"],
     "TGLS":          ["Tecnoglass", "TGLS stock", "Tecnoglass Colombia"],
  
-    # Latin America ETFs
-    "EWZ":           ["EWZ ETF", "Brazil stocks", "iShares Brazil", "Brazil market"],
-    "EWW":           ["EWW ETF", "Mexico stocks", "iShares Mexico", "Mexico market"],
-    "ECH":           ["ECH ETF", "Chile stocks", "iShares Chile", "Chile market"],
-    "EPU":           ["EPU ETF", "Peru stocks", "iShares Peru", "Peru market"],
+    # Latin America ETFs — top companies + index names
+    "EWZ":  ["EWZ ETF", "Brazil stocks", "Petrobras", "Vale mining",
+             "Itau Unibanco", "Bradesco bank", "Ambev", "Embraer",
+             "Eletrobras", "WEG industries", "Ibovespa", "Brazil economy",
+             "Banco do Brasil", "Suzano", "Brazil real BRL"],
+    "EWW":  ["EWW ETF", "Mexico stocks", "Femsa", "America Movil",
+             "Grupo Mexico", "Cemex", "Banorte", "Walmex", "Televisa",
+             "Gruma", "BMV Mexico", "Mexico economy", "Mexican peso"],
+    "ECH":  ["ECH ETF", "Chile stocks", "Falabella", "Codelco copper",
+             "SQM lithium", "Copec", "Banco de Chile", "Cencosud",
+             "Antofagasta", "IPSA index", "Chile economy", "Chilean peso"],
+    "EPU":  ["EPU ETF", "Peru stocks", "Credicorp", "Buenaventura gold",
+             "Alicorp", "Intercorp", "BVL Lima", "Peru economy",
+             "Peruvian sol", "Peru copper", "Peru mining"],
  
-    # Africa ETFs
-    "EZA":           ["EZA ETF", "South Africa stocks", "iShares South Africa"],
-    "NGE":           ["NGE ETF", "Nigeria stocks", "Nigeria market", "Global X Nigeria"],
+    # Africa ETFs — top companies + index names
+    "EZA":  ["EZA ETF", "South Africa stocks", "Naspers", "Prosus",
+             "Sasol energy", "Anglo American", "Standard Bank",
+             "FirstRand", "MTN Group", "Shoprite", "JSE index",
+             "South Africa economy", "South African rand"],
+    "NGE":  ["NGE ETF", "Nigeria stocks", "Dangote", "GTBank",
+             "Zenith Bank", "Access Bank", "NNPC oil", "Airtel Nigeria",
+             "Nigerian Stock Exchange", "Nigeria economy", "Nigerian naira",
+             "Nigeria oil production"],
  
-    # Southeast Asia ETFs
-    "EWY":           ["EWY ETF", "Korea stocks", "iShares Korea", "South Korea market"],
-    "EWT":           ["EWT ETF", "Taiwan stocks", "iShares Taiwan", "Taiwan market"],
-    "EIDO":          ["EIDO ETF", "Indonesia stocks", "iShares Indonesia"],
-    "THD":           ["THD ETF", "Thailand stocks", "iShares Thailand"],
+    # Southeast Asia ETFs — top companies + index names
+    "EWY":  ["EWY ETF", "Korea stocks", "Samsung Electronics",
+             "SK Hynix", "LG Electronics", "Hyundai", "Kia",
+             "Kakao", "Naver", "POSCO", "KOSPI index",
+             "South Korea economy", "Korean won"],
+    "EWT":  ["EWT ETF", "Taiwan stocks", "TSMC", "Taiwan Semiconductor",
+             "MediaTek", "Foxconn", "ASE Technology", "Largan",
+             "TAIEX index", "Taiwan economy", "Taiwan dollar",
+             "Taiwan chips", "semiconductor Taiwan"],
+    "EIDO": ["EIDO ETF", "Indonesia stocks", "Bank Central Asia",
+             "Bank Rakyat Indonesia", "Telkom Indonesia", "Astra International",
+             "Bumi Resources", "IDX Composite", "Indonesia economy",
+             "Indonesian rupiah", "Indonesia palm oil"],
+    "THD":  ["THD ETF", "Thailand stocks", "PTT oil", "Advanced Info",
+             "Kasikorn Bank", "Siam Cement", "Bangkok Bank",
+             "SET index Thailand", "Thailand economy", "Thai baht",
+             "Thailand tourism"],
  
     # Bond ETFs
-    "TLT":           ["TLT ETF", "US treasury bonds", "long bonds", "20 year treasury", "bond market"],
-    "IEF":           ["IEF ETF", "US treasury bonds", "10 year treasury", "intermediate bonds"],
-    "HYG":           ["HYG ETF", "high yield bonds", "junk bonds", "credit spreads"],
-    "EMB":           ["EMB ETF", "emerging market bonds", "EM bonds", "sovereign debt"],
+    "TLT":  ["TLT ETF", "US treasury bonds", "long bonds",
+             "20 year treasury", "bond market", "treasury yield",
+             "US government bonds", "bond rally", "flight to safety"],
+    "IEF":  ["IEF ETF", "10 year treasury", "intermediate bonds",
+             "US bonds", "treasury note", "10yr yield"],
+    "HYG":  ["HYG ETF", "high yield bonds", "junk bonds",
+             "credit spreads", "corporate bonds", "HY spreads"],
+    "EMB":  ["EMB ETF", "emerging market bonds", "EM bonds",
+             "sovereign debt", "EM debt", "dollar bonds emerging"],
 }
  
 TICKERS = list(SEARCH_TERMS.keys())
