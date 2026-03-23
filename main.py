@@ -19,6 +19,8 @@ from telegram_notify import notify_telegram_with_forex
 from forex_signals import get_forex_signals
 from forex_paper import open_forex_paper_trades, resolve_forex_paper_trades
 from forex_technicals import run_forex_technicals
+from prediction_markets import run_prediction_markets, format_divergences_for_telegram
+from telegram_notify import send_telegram
  
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
  
@@ -119,6 +121,15 @@ def run_pipeline():
             print(f"    [Forex Paper] {forex_resolved} trade(s) resolved")
     except Exception as e:
         print(f"    [Forex Paper] Error (non-fatal): {e}")
+ 
+    # Prediction Markets divergences
+    try:
+        divergences = run_prediction_markets(signal_results)
+        if divergences:
+            div_msg = format_divergences_for_telegram(divergences)
+            send_telegram(div_msg)
+    except Exception as e:
+        print(f"    [Prediction Markets] Error (non-fatal): {e}")
  
     print(f"\n[OK] Pipeline complete. Next run in {INTERVAL} hours.")
  
