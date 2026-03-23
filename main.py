@@ -20,6 +20,7 @@ from forex_signals import get_forex_signals
 from forex_paper import open_forex_paper_trades, resolve_forex_paper_trades
 from forex_technicals import run_forex_technicals
 from prediction_markets import run_prediction_markets, format_divergences_for_telegram
+from volatility import run_volatility, format_volatility_for_telegram, adjust_confidence_for_volatility
 from telegram_notify import send_telegram
  
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
@@ -72,6 +73,14 @@ def run_pipeline():
         print(f"    [Forex Tech] Error (non-fatal): {e}")
         forex_tech = {}
  
+    # LAYER 1.6 — Volatility & VIX
+    print("\n[LAYER 1.6] Volatility & VIX")
+    vol_context = {}
+    try:
+        vol_context = run_volatility(signal_results if "signal_results" in dir() else [])
+    except Exception as e:
+        print(f"    [Volatility] Error (non-fatal): {e}")
+ 
     # LAYER 2
     print("\n[LAYER 2] Sentiment Analysis")
     sentiment_results = run_sentiment_analysis() or []
@@ -109,8 +118,15 @@ def run_pipeline():
     print("\n[NOTIFY]")
     resolved = resolve_pending_paper_trades()
     notify(sentiment_results, signal_results, resolved_trades=resolved)
+    # Run volatility with final signals
+    try:
+        vol_context = run_volatility(signal_results)
+    except Exception as e:
+        print(f"    [Volatility] Error (non-fatal): {e}")
+        vol_context = {}
     notify_telegram_with_forex(sentiment_results, signal_results,
-                                resolved_trades=resolved, forex_tech=forex_tech)
+                                resolved_trades=resolved, forex_tech=forex_tech,
+                                vol_context=vol_context)
  
     # Forex paper trading
     try:

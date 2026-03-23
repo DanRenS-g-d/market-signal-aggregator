@@ -127,7 +127,8 @@ def notify_telegram(sentiment_results: list, signal_results: list, resolved_trad
  
  
 def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
-                                resolved_trades: int = 0, forex_tech: dict = None):
+                                resolved_trades: int = 0, forex_tech: dict = None,
+                                vol_context: dict = None):
     """Extended notify with forex signals and technical confirmation."""
     from forex_signals import get_forex_signals, format_forex_for_telegram
     from forex_technicals import format_forex_technicals_for_telegram
@@ -152,6 +153,13 @@ def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
             tech_text = format_forex_technicals_for_telegram(forex_tech, forex_signals)
             if tech_text:
                 message = message + "\n" + tech_text
+ 
+    # Add volatility context
+    if vol_context:
+        from volatility import format_volatility_for_telegram
+        vol_text = format_volatility_for_telegram(vol_context)
+        if vol_text:
+            message = message + vol_text
  
     send_telegram(message)
  
