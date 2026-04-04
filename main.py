@@ -24,6 +24,7 @@ from volatility import run_volatility, format_volatility_for_telegram, adjust_co
 from regime_detector import run_regime_detector, apply_regime_to_signals, format_regime_for_telegram
 from twitter_publisher import run_twitter_publisher
 from marine_traffic import run_marine_traffic, format_marine_for_telegram
+from macro_consumer import run_macro_consumer, format_macro_for_telegram
 from telegram_notify import send_telegram
  
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
@@ -83,6 +84,14 @@ def run_pipeline():
         vol_context = run_volatility(signal_results if "signal_results" in dir() else [])
     except Exception as e:
         print(f"    [Volatility] Error (non-fatal): {e}")
+ 
+    # LAYER 1.8 — Macro Consumer Patterns (FRED)
+    print("\n[LAYER 1.8] Macro Consumer Patterns")
+    macro_data = {}
+    try:
+        macro_data = run_macro_consumer()
+    except Exception as e:
+        print(f"    [Macro] Error (non-fatal): {e}")
  
     # LAYER 1.7 — Marine Traffic
     print("\n[LAYER 1.7] Marine Traffic")
@@ -147,7 +156,7 @@ def run_pipeline():
     notify_telegram_with_forex(sentiment_results, signal_results,
                                 resolved_trades=resolved, forex_tech=forex_tech,
                                 vol_context=vol_context, regimes=regimes,
-                                marine_data=marine_data)
+                                marine_data=marine_data, macro_data=macro_data)
  
     # Forex paper trading
     try:

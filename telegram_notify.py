@@ -129,7 +129,7 @@ def notify_telegram(sentiment_results: list, signal_results: list, resolved_trad
 def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
                                 resolved_trades: int = 0, forex_tech: dict = None,
                                 vol_context: dict = None, regimes: dict = None,
-                                marine_data: dict = None):
+                                marine_data: dict = None, macro_data: dict = None):
     """Extended notify with forex signals and technical confirmation."""
     from forex_signals import get_forex_signals, format_forex_for_telegram
     from forex_technicals import format_forex_technicals_for_telegram
@@ -154,6 +154,13 @@ def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
             tech_text = format_forex_technicals_for_telegram(forex_tech, forex_signals)
             if tech_text:
                 message = message + "\n" + tech_text
+ 
+    # Add macro consumer signals
+    if macro_data:
+        from macro_consumer import format_macro_for_telegram
+        macro_text = format_macro_for_telegram(macro_data)
+        if macro_text:
+            message = message + macro_text
  
     # Add marine traffic signals
     if marine_data:
