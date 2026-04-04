@@ -22,6 +22,8 @@ from forex_technicals import run_forex_technicals
 from prediction_markets import run_prediction_markets, format_divergences_for_telegram
 from volatility import run_volatility, format_volatility_for_telegram, adjust_confidence_for_volatility
 from regime_detector import run_regime_detector, apply_regime_to_signals, format_regime_for_telegram
+from twitter_publisher import run_twitter_publisher
+from marine_traffic import run_marine_traffic, format_marine_for_telegram
 from telegram_notify import send_telegram
  
 INTERVAL = int(os.environ.get("FETCH_INTERVAL_HOURS", 6))
@@ -82,6 +84,14 @@ def run_pipeline():
     except Exception as e:
         print(f"    [Volatility] Error (non-fatal): {e}")
  
+    # LAYER 1.7 — Marine Traffic
+    print("\n[LAYER 1.7] Marine Traffic")
+    marine_data = {}
+    try:
+        marine_data = run_marine_traffic()
+    except Exception as e:
+        print(f"    [Marine] Error (non-fatal): {e}")
+ 
     # LAYER 2
     print("\n[LAYER 2] Sentiment Analysis")
     sentiment_results = run_sentiment_analysis() or []
@@ -136,7 +146,8 @@ def run_pipeline():
         vol_context = {}
     notify_telegram_with_forex(sentiment_results, signal_results,
                                 resolved_trades=resolved, forex_tech=forex_tech,
-                                vol_context=vol_context, regimes=regimes)
+                                vol_context=vol_context, regimes=regimes,
+                                marine_data=marine_data)
  
     # Forex paper trading
     try:
@@ -156,6 +167,12 @@ def run_pipeline():
             send_telegram(div_msg)
     except Exception as e:
         print(f"    [Prediction Markets] Error (non-fatal): {e}")
+ 
+    # Twitter public post
+    try:
+        run_twitter_publisher(signal_results)
+    except Exception as e:
+        print(f"    [Twitter] Error (non-fatal): {e}")
  
     print(f"\n[OK] Pipeline complete. Next run in {INTERVAL} hours.")
  
