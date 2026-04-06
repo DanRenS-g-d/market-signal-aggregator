@@ -1,45 +1,46 @@
+# PAIRS — pruned after ablation testing (April 2026)
+# Tier A: 76-100% accuracy — core alpha
+# Tier B: 61-69% accuracy — marginal, keep for now
+# Tier C: removed — Cemargos/TGLS, HY/IG, EM bonds, Korea/Asia pairs
+ 
 PAIRS = [
-    # Oil & Gas (Colombia)
-    {"name": "Oil Integrated vs Gas", "a": "EC",        "b": "CNEC.CN",       "a_name": "Ecopetrol",   "b_name": "Canacol",    "sector": "oil_gas"},
-    {"name": "Oil Integrated vs E&P", "a": "EC",        "b": "GPRK",          "a_name": "Ecopetrol",   "b_name": "GeoPark",    "sector": "oil_gas"},
-    {"name": "E&P Oil vs Gas",        "a": "GPRK",      "b": "CNEC.CN",       "a_name": "GeoPark",     "b_name": "Canacol",    "sector": "oil_gas"},
+    # ── Tier A: Colombia Oil & Gas ────────────────────────────
+    {"name": "Oil Integrated vs Gas", "a": "EC",         "b": "CNEC.CN",       "a_name": "Ecopetrol",   "b_name": "Canacol",     "sector": "oil_gas",      "tier": "A"},
+    {"name": "E&P Oil vs Gas",        "a": "GPRK",       "b": "CNEC.CN",       "a_name": "GeoPark",     "b_name": "Canacol",     "sector": "oil_gas",      "tier": "B"},
+    {"name": "Oil Integrated vs E&P", "a": "EC",         "b": "GPRK",          "a_name": "Ecopetrol",   "b_name": "GeoPark",     "sector": "oil_gas",      "tier": "B"},
  
-    # Banking & Finance (Colombia)
-    {"name": "Bancolombia vs Davivienda", "a": "CIB",       "b": "PFBCOLOM.CL",  "a_name": "Bancolombia", "b_name": "Davivienda", "sector": "banking"},
-    {"name": "Aval vs Bancolombia",       "a": "AVAL",      "b": "CIB",          "a_name": "Grupo Aval",  "b_name": "Bancolombia","sector": "banking"},
-    {"name": "CIB Ord vs Pfd",            "a": "CIBEST.CL", "b": "PFCIBEST.CL",  "a_name": "CIB Ord",     "b_name": "CIB Pfd",    "sector": "banking"},
+    # ── Tier A: Colombia Banking ──────────────────────────────
+    {"name": "CIB Ord vs Pfd",            "a": "CIBEST.CL", "b": "PFCIBEST.CL",  "a_name": "CIB Ord",     "b_name": "CIB Pfd",     "sector": "banking",      "tier": "A"},
+    {"name": "Bancolombia vs Davivienda", "a": "CIB",       "b": "PFBCOLOM.CL",  "a_name": "Bancolombia", "b_name": "Davivienda",  "sector": "banking",      "tier": "B"},
  
-    # Utilities (Colombia)
-    {"name": "ISA vs GEB",            "a": "ISA.CL",     "b": "GEB.CL",        "a_name": "ISA",         "b_name": "GEB",        "sector": "utilities"},
+    # ── Tier A: Colombia Utilities & Conglomerates ────────────
+    {"name": "ISA vs GEB",            "a": "ISA.CL",     "b": "GEB.CL",        "a_name": "ISA",         "b_name": "GEB",         "sector": "utilities",    "tier": "A"},
+    {"name": "Sura vs Aval",          "a": "GRUPSURA.CL","b": "AVAL",          "a_name": "Grupo Sura",  "b_name": "Grupo Aval",  "sector": "conglomerates","tier": "A"},
  
-    # Conglomerates (Colombia)
-    {"name": "Sura Ord vs Pfd",       "a": "GRUPSURA.CL","b": "PFGRUPSURA.CL", "a_name": "Sura Ord",    "b_name": "Sura Pfd",   "sector": "conglomerates"},
-    {"name": "Sura vs Aval",          "a": "GRUPSURA.CL","b": "AVAL",          "a_name": "Grupo Sura",  "b_name": "Grupo Aval", "sector": "conglomerates"},
+    # ── Tier A: Latam ETFs ────────────────────────────────────
+    {"name": "Brazil vs Mexico",      "a": "EWZ",        "b": "EWW",           "a_name": "Brazil ETF",  "b_name": "Mexico ETF",  "sector": "latam",        "tier": "A"},
+    {"name": "Mexico vs Peru",        "a": "EWW",        "b": "EPU",           "a_name": "Mexico ETF",  "b_name": "Peru ETF",    "sector": "latam",        "tier": "A"},
+    {"name": "Peru vs Chile",         "a": "EPU",        "b": "ECH",           "a_name": "Peru ETF",    "b_name": "Chile ETF",   "sector": "latam",        "tier": "A"},
+    {"name": "Brazil vs Chile",       "a": "EWZ",        "b": "ECH",           "a_name": "Brazil ETF",  "b_name": "Chile ETF",   "sector": "latam",        "tier": "A"},
  
-    # Materials (Colombia)
-    {"name": "Cemargos vs Tecnoglass","a": "CEMARGOS.CL","b": "TGLS",          "a_name": "Cementos Argos","b_name": "Tecnoglass","sector": "materials"},
+    # ── Tier B: Risk-on / Risk-off ────────────────────────────
+    {"name": "Brazil vs Long Bonds",  "a": "EWZ",        "b": "TLT",           "a_name": "Brazil ETF",  "b_name": "US Long Bonds","sector": "risk",         "tier": "B"},
+    {"name": "EM vs US Bonds",        "a": "EWZ",        "b": "IEF",           "a_name": "Brazil ETF",  "b_name": "US Mid Bonds", "sector": "risk",         "tier": "B"},
  
-    # Latin America ETFs
-    {"name": "Brazil vs Mexico",      "a": "EWZ",        "b": "EWW",           "a_name": "Brazil ETF",  "b_name": "Mexico ETF", "sector": "latam"},
-    {"name": "Brazil vs Chile",       "a": "EWZ",        "b": "ECH",           "a_name": "Brazil ETF",  "b_name": "Chile ETF",  "sector": "latam"},
-    {"name": "Peru vs Chile",         "a": "EPU",        "b": "ECH",           "a_name": "Peru ETF",    "b_name": "Chile ETF",  "sector": "latam"},
-    {"name": "Mexico vs Peru",        "a": "EWW",        "b": "EPU",           "a_name": "Mexico ETF",  "b_name": "Peru ETF",   "sector": "latam"},
- 
-    # Africa ETFs
-    {"name": "South Africa vs Nigeria","a": "EZA",       "b": "NGE",           "a_name": "S.Africa ETF","b_name": "Nigeria ETF","sector": "africa"},
- 
-    # Southeast Asia ETFs
-    {"name": "Korea vs Taiwan",       "a": "EWY",        "b": "EWT",           "a_name": "Korea ETF",   "b_name": "Taiwan ETF", "sector": "asia"},
-    {"name": "Indonesia vs Thailand", "a": "EIDO",       "b": "THD",           "a_name": "Indonesia ETF","b_name": "Thailand ETF","sector": "asia"},
-    {"name": "Korea vs Indonesia",    "a": "EWY",        "b": "EIDO",          "a_name": "Korea ETF",   "b_name": "Indonesia ETF","sector": "asia"},
- 
-    # Risk-On vs Risk-Off (Stocks vs Bonds)
-    {"name": "Brazil vs Long Bonds",  "a": "EWZ",        "b": "TLT",           "a_name": "Brazil ETF",  "b_name": "US Long Bonds","sector": "risk"},
-    {"name": "Korea vs Long Bonds",   "a": "EWY",        "b": "TLT",           "a_name": "Korea ETF",   "b_name": "US Long Bonds","sector": "risk"},
-    {"name": "EM vs US Bonds",        "a": "EWZ",        "b": "IEF",           "a_name": "Brazil ETF",  "b_name": "US Mid Bonds", "sector": "risk"},
-    {"name": "HY vs IG Bonds",        "a": "HYG",        "b": "IEF",           "a_name": "High Yield",  "b_name": "Investment Grade","sector": "credit"},
-    {"name": "EM Bonds vs US Bonds",  "a": "EMB",        "b": "TLT",           "a_name": "EM Bonds",    "b_name": "US Long Bonds","sector": "credit"},
+    # ── Tier B: Africa ────────────────────────────────────────
+    {"name": "South Africa vs Nigeria","a": "EZA",       "b": "NGE",           "a_name": "S.Africa ETF","b_name": "Nigeria ETF", "sector": "africa",       "tier": "B"},
 ]
+ 
+# REMOVED (Tier C — ablation showed negative/low alpha):
+# Cemargos vs Tecnoglass  35% accuracy
+# Aval vs Bancolombia     32% accuracy
+# HY vs IG Bonds           0% accuracy
+# EM Bonds vs US Bonds    29% accuracy
+# Korea vs Taiwan         45% accuracy
+# Korea vs Indonesia      45% accuracy
+# Korea vs Long Bonds     78% acc but -0.64% avg P&L
+# Indonesia vs Thailand   40% accuracy
+# Sura Ord vs Pfd         (replaced by Sura vs Aval)
  
 SEARCH_TERMS = {
     # Colombia stocks
