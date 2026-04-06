@@ -44,6 +44,7 @@ def init_layer4_tables():
             entry_price     NUMERIC,
             exit_price      NUMERIC,
             entry_date      TIMESTAMP DEFAULT NOW(),
+            is_forward_test BOOLEAN DEFAULT FALSE,
             exit_date       TIMESTAMP,
             pnl_pct         NUMERIC,         -- % gain/loss
             outcome         TEXT,            -- win | loss | pending
@@ -122,8 +123,8 @@ def save_paper_trade(pair_signal_id, ticker, direction, entry_price):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO paper_trades (pair_signal_id, ticker, direction, entry_price)
-        VALUES (%s, %s, %s, %s) RETURNING id
+        INSERT INTO paper_trades (pair_signal_id, ticker, direction, entry_price, is_forward_test)
+        VALUES (%s, %s, %s, %s, (NOW() >= '2026-04-06')::BOOLEAN) RETURNING id
     """, (pair_signal_id, ticker, direction, entry_price))
     row = cur.fetchone()
     conn.commit(); cur.close(); conn.close()
