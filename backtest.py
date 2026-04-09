@@ -126,7 +126,8 @@ def confidence_calibration(trades: list) -> dict:
     }
     for t in trades:
         conf = float(t["confidence"]) if t["confidence"] else 0
-        pnl  = float(t["pnl_pct"]) if t["pnl_pct"] else 0
+        raw  = float(t["pnl_pct"]) if t["pnl_pct"] else 0
+        pnl  = 0 if math.isnan(raw) else raw
         if conf >= 0.75:
             bins["high (>=0.75)"].append(pnl)
         elif conf >= 0.50:
@@ -175,7 +176,7 @@ def pair_regime_analysis(trades: list) -> dict:
     for pair, data in pairs.items():
         n    = len(data)
         wins = [d for d in data if d["win"]]
-        pnls = [d["pnl"] for d in data]
+        pnls = [d["pnl"] for d in data if not math.isnan(d["pnl"])]
         acc  = round(len(wins) / n, 3) if n > 0 else 0
  
         # Streak analysis — detect if wins are clustered (regime-dependent)
