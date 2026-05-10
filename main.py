@@ -23,6 +23,7 @@ from prediction_markets import run_prediction_markets, format_divergences_for_te
 from volatility import run_volatility, format_volatility_for_telegram, adjust_confidence_for_volatility
 from regime_detector import run_regime_detector, apply_regime_to_signals, format_regime_for_telegram
 from cointegration import run_cointegration_tests, get_tradeable_pairs
+from hrp_optimizer import apply_hrp_to_signals, format_hrp_for_telegram
 from regime_classifier import run_regime_classifier, apply_regime_classification
 from twitter_publisher import run_twitter_publisher
 from marine_traffic import run_marine_traffic, format_marine_for_telegram
@@ -159,6 +160,12 @@ def run_pipeline():
     except Exception as e:
         print(f"    [RC] Error (non-fatal): {e}")
         signal_results = raw_signals
+ 
+    # HRP Capital Allocation
+    try:
+        signal_results = apply_hrp_to_signals(signal_results)
+    except Exception as e:
+        print(f"    [HRP] Error (non-fatal): {e}")
  
     # FINAL SUMMARY
     print(f"\n{'='*60}")

@@ -101,6 +101,10 @@ def build_telegram_message(sentiment_results: list, signal_results: list, resolv
                 lines.append(f"🛑 Stop Loss: ${sl} (-5%)")
                 lines.append(f"📊 Shares: $100→{s100} | $200→{s200} | $500→{s500}")
                 lines.append(f"📱 IBKR: busca <code>{ticker}</code> → Limit → GTC")
+ 
+            # HRP allocation if available
+            if r.get("hrp_alloc_pct"):
+                lines.append(f"⚖️ HRP allocation: <b>{r['hrp_alloc_pct']}% of capital</b>")
             else:
                 lines.append(f"⚠️ Precio no disponible — verificar en IBKR")
  
@@ -129,7 +133,8 @@ def notify_telegram(sentiment_results: list, signal_results: list, resolved_trad
 def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
                                 resolved_trades: int = 0, forex_tech: dict = None,
                                 vol_context: dict = None, regimes: dict = None,
-                                marine_data: dict = None, macro_data: dict = None):
+                                marine_data: dict = None, macro_data: dict = None,
+                                show_hrp: bool = True):
     """Extended notify with forex signals and technical confirmation."""
     from forex_signals import get_forex_signals, format_forex_for_telegram
     from forex_technicals import format_forex_technicals_for_telegram
@@ -154,6 +159,13 @@ def notify_telegram_with_forex(sentiment_results: list, signal_results: list,
             tech_text = format_forex_technicals_for_telegram(forex_tech, forex_signals)
             if tech_text:
                 message = message + "\n" + tech_text
+ 
+    # Add HRP allocation summary
+    if show_hrp:
+        from hrp_optimizer import format_hrp_for_telegram
+        hrp_text = format_hrp_for_telegram(signal_results)
+        if hrp_text:
+            message = message + hrp_text
  
     # Add macro consumer signals
     if macro_data:
