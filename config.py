@@ -5,17 +5,21 @@
  
 PAIRS = [
     # ── Tier A: Colombia Oil & Gas ────────────────────────────
-    {"name": "Oil Integrated vs Gas", "a": "EC",         "b": "CNEC.CN",       "a_name": "Ecopetrol",   "b_name": "Canacol",     "sector": "oil_gas",      "tier": "A"},
-    {"name": "E&P Oil vs Gas",        "a": "GPRK",       "b": "CNEC.CN",       "a_name": "GeoPark",     "b_name": "Canacol",     "sector": "oil_gas",      "tier": "B"},
+    # CNEC.CN removed — delisted
     {"name": "Oil Integrated vs E&P", "a": "EC",         "b": "GPRK",          "a_name": "Ecopetrol",   "b_name": "GeoPark",     "sector": "oil_gas",      "tier": "B"},
  
     # ── Tier A: Colombia Banking ──────────────────────────────
-    {"name": "CIB Ord vs Pfd",            "a": "CIBEST.CL", "b": "PFCIBEST.CL",  "a_name": "CIB Ord",     "b_name": "CIB Pfd",     "sector": "banking",      "tier": "A"},
-    {"name": "Bancolombia vs Davivienda", "a": "CIB",       "b": "PFBCOLOM.CL",  "a_name": "Bancolombia", "b_name": "Davivienda",  "sector": "banking",      "tier": "B"},
+    {"name": "CIB Ord vs Pfd",        "a": "CIBEST.CL",  "b": "PFCIBEST.CL",   "a_name": "CIB Ord",     "b_name": "CIB Pfd",     "sector": "banking",      "tier": "A"},
+    # PFBCOLOM.CL removed — delisted
+    {"name": "Aval vs Bancolombia",   "a": "AVAL",       "b": "CIB",           "a_name": "Grupo Aval",  "b_name": "Bancolombia", "sector": "banking",      "tier": "B"},
  
-    # ── Tier A: Colombia Utilities & Conglomerates ────────────
+    # ── Tier A: Colombia Utilities ────────────────────────────
     {"name": "ISA vs GEB",            "a": "ISA.CL",     "b": "GEB.CL",        "a_name": "ISA",         "b_name": "GEB",         "sector": "utilities",    "tier": "A"},
-    {"name": "Sura vs Aval",          "a": "GRUPSURA.CL","b": "AVAL",          "a_name": "Grupo Sura",  "b_name": "Grupo Aval",  "sector": "conglomerates","tier": "A"},
+ 
+    # ── Colombia Conglomerates ────────────────────────────────
+    # GRUPSURA.CL removed — delisted
+    # Replaced with CIB vs AVAL (both liquid, same sector)
+    {"name": "Bancolombia vs Aval",   "a": "CIB",        "b": "AVAL",          "a_name": "Bancolombia", "b_name": "Grupo Aval",  "sector": "banking",      "tier": "B"},
  
     # ── Tier A: Latam ETFs ────────────────────────────────────
     {"name": "Brazil vs Mexico",      "a": "EWZ",        "b": "EWW",           "a_name": "Brazil ETF",  "b_name": "Mexico ETF",  "sector": "latam",        "tier": "A"},
@@ -28,7 +32,8 @@ PAIRS = [
     {"name": "EM vs US Bonds",        "a": "EWZ",        "b": "IEF",           "a_name": "Brazil ETF",  "b_name": "US Mid Bonds", "sector": "risk",         "tier": "B"},
  
     # ── Tier B: Africa ────────────────────────────────────────
-    {"name": "South Africa vs Nigeria","a": "EZA",       "b": "NGE",           "a_name": "S.Africa ETF","b_name": "Nigeria ETF", "sector": "africa",       "tier": "B"},
+    # NGE removed — no price data
+    {"name": "South Africa vs Brazil","a": "EZA",        "b": "EWZ",           "a_name": "S.Africa ETF","b_name": "Brazil ETF",  "sector": "africa",       "tier": "B"},
 ]
  
 # REMOVED (Tier C — ablation showed negative/low alpha):
@@ -45,17 +50,13 @@ PAIRS = [
 SEARCH_TERMS = {
     # Colombia stocks
     "EC":            ["Ecopetrol", "EC stock", "Ecopetrol oil"],
-    "CNEC.CN":       ["Canacol Energy", "Canacol gas Colombia"],
     "GPRK":          ["GeoPark", "GPRK stock", "GeoPark oil"],
     "CIB":           ["Bancolombia", "CIB stock", "Grupo Cibest"],
-    "PFBCOLOM.CL":   ["Davivienda", "Davivienda banco"],
     "AVAL":          ["Grupo Aval", "AVAL stock", "Aval acciones"],
     "CIBEST.CL":     ["Bancolombia BVC", "CIBEST", "Bancolombia accion"],
     "PFCIBEST.CL":   ["Bancolombia preferencial", "PFCIBEST"],
     "ISA.CL":        ["Interconexion Electrica", "ISA Colombia", "ISA energia"],
     "GEB.CL":        ["Grupo Energia Bogota", "GEB Colombia", "energia bogota"],
-    "GRUPSURA.CL":   ["Grupo Sura", "GRUPSURA", "Suramericana inversiones"],
-    "PFGRUPSURA.CL": ["Grupo Sura preferencial", "PFGRUPSURA"],
     "CEMARGOS.CL":   ["Cementos Argos", "CEMARGOS", "Argos cemento"],
     "TGLS":          ["Tecnoglass", "TGLS stock", "Tecnoglass Colombia"],
  
@@ -79,8 +80,6 @@ SEARCH_TERMS = {
              "Sasol energy", "Anglo American", "Standard Bank",
              "FirstRand", "MTN Group", "Shoprite", "JSE index",
              "South Africa economy", "South African rand"],
-    "NGE":  ["NGE ETF", "Nigeria stocks", "Dangote", "GTBank",
-             "Zenith Bank", "Access Bank", "NNPC oil", "Airtel Nigeria",
              "Nigerian Stock Exchange", "Nigeria economy", "Nigerian naira",
              "Nigeria oil production"],
  
@@ -119,17 +118,13 @@ TICKERS = list(SEARCH_TERMS.keys())
 YAHOO_MAP = {
     # Colombia stocks
     "EC":            "EC",
-    "CNEC.CN":       "CNE.TO",
     "GPRK":          "GPRK",
     "CIB":           "CIB",
-    "PFBCOLOM.CL":   "PFBCOLOM.CL",
     "AVAL":          "AVAL",
     "CIBEST.CL":     "CIBEST.CL",
     "PFCIBEST.CL":   "PFCIBEST.CL",
     "ISA.CL":        "ISA.CL",
     "GEB.CL":        "GEB.CL",
-    "GRUPSURA.CL":   "GRUPSURA.CL",
-    "PFGRUPSURA.CL": "PFGRUPSURA.CL",
     "CEMARGOS.CL":   "CEMARGOS.CL",
     "TGLS":          "TGLS",
  
@@ -141,7 +136,6 @@ YAHOO_MAP = {
  
     # Africa ETFs
     "EZA":           "EZA",
-    "NGE":           "NGE",
  
     # Southeast Asia ETFs
     "EWY":           "EWY",
