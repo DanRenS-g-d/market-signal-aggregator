@@ -22,7 +22,6 @@ from forex_technicals import run_forex_technicals
 from prediction_markets import run_prediction_markets, format_divergences_for_telegram
 from volatility import run_volatility, format_volatility_for_telegram, adjust_confidence_for_volatility
 from regime_detector import run_regime_detector, apply_regime_to_signals, format_regime_for_telegram
-from cointegration import run_cointegration_tests, get_tradeable_pairs
 from hrp_optimizer import apply_hrp_to_signals, format_hrp_for_telegram
 from regime_classifier import run_regime_classifier, apply_regime_classification
 from twitter_publisher import run_twitter_publisher
@@ -117,45 +116,27 @@ def run_pipeline():
     print("\n[LAYER 4.5] Similarity Engine")
     run_similarity_engine(tech_data)
  
-    # LAYER 4 — Cointegration + Regime Classification
-    print("\n[LAYER 4] Cointegration Testing")
-    coint_results = []
-    regimes       = {}
-    regime_class  = {}
-    try:
-        # Run cointegration weekly (cache in DB for 7 days)
-        tradeable_pairs = get_tradeable_pairs()
-        if not tradeable_pairs:
-            coint_results = run_cointegration_tests(PAIRS)
-            tradeable_pairs = {r["pair"] for r in coint_results if r.get("tradeable")}
-        # Filter PAIRS to only cointegrated ones
-        coint_pairs = [p for p in PAIRS if p["name"] in tradeable_pairs]
-        if not coint_pairs:
-            print("    [Coint] No tradeable pairs — using all pairs as fallback")
-            coint_pairs = PAIRS
-    except Exception as e:
-        print(f"    [Coint] Error (non-fatal): {e}")
-        coint_pairs = PAIRS
+    # LAYER 4 — Regime Detection + Signal Generation
+    # Cointegration filter disabled — using all pairs
+    # Will re-enable after 6+ months of price history accumulates
+    regimes      = {}
+    regime_class = {}
  
     try:
-        regimes = run_regime_detector(coint_pairs)
+        regimes = run_regime_detector(PAIRS)
     except Exception as e:
         print(f"    [Regime] Error (non-fatal): {e}")
  
     # LAYER 4 — Signal Generation
     print("\n[LAYER 4] Pair Signal Generation")
-    raw_signals    = run_signal_generation() or []
- 
-    # Apply cointegration filter
-    raw_signals = [s for s in raw_signals if s["pair"] in
-                   ({p["name"] for p in coint_pairs})]
+    raw_signals = run_signal_generation() or []
  
     # Apply regime detector
     raw_signals = apply_regime_to_signals(raw_signals, regimes) if regimes else raw_signals
  
     # Apply regime classifier (Hurst + ADX)
     try:
-        regime_class  = run_regime_classifier(coint_pairs, coint_results)
+        regime_class   = run_regime_classifier(PAIRS, [])
         signal_results = apply_regime_classification(raw_signals, regime_class)
     except Exception as e:
         print(f"    [RC] Error (non-fatal): {e}")
