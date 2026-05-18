@@ -79,7 +79,7 @@ SEARCH_TERMS = {
     "EZA":  ["EZA ETF", "South Africa stocks", "Naspers", "Prosus",
              "Sasol energy", "Anglo American", "Standard Bank",
              "FirstRand", "MTN Group", "Shoprite", "JSE index",
-             "South Africa economy", "South African rand"],
+             "South Africa economy", "South African rand",
              "Nigerian Stock Exchange", "Nigeria economy", "Nigerian naira",
              "Nigeria oil production"],
  
