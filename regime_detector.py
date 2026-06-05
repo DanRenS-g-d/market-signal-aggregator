@@ -18,7 +18,7 @@ CORR_MAX            = 0.95   # above → no divergence
 VOL_PERCENTILE_LOW  = 30     # below 30th percentile → too quiet
 VOL_PERCENTILE_HIGH = 70     # above 70th percentile → too volatile
 CORR_STABILITY_MAX  = 0.20   # std dev of rolling corr — above this = unstable
-SCORE_THRESHOLD     = 0.40   # minimum regime_score to trade
+SCORE_THRESHOLD     = 0.20   # minimum regime_score to trade
 LOOKBACK_DAYS       = 60     # main window
 SHORT_WINDOW        = 30     # short window for stability check
  
